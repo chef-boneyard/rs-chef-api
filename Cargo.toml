@@ -1,0 +1,21 @@
+[package]
+name = "chef-api"
+version = "0.1.0"
+authors = ["Thom May <thom@chef.io>"]
+
+[dependencies]
+time = "*"
+log = "*"
+rustc-serialize = "*"
+clippy = {version = "0.0.21", optional = true}
+hyper = "*"
+chrono = "0.2"
+
+[dependencies.openssl]
+version = "*"
+git = "https://github.com/thommay/rust-openssl.git"
+branch = "pkey_private_encrypt"
+
+[features]
+default = []
+dev = ["clippy"]
