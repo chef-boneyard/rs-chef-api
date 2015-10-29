@@ -3,9 +3,9 @@ use hyper::header::Headers;
 use openssl::crypto::hash::hash;
 use openssl::crypto::hash::Type::SHA1;
 use openssl::crypto::pkey::PKey;
-use rustc_serialize::base64::{STANDARD, ToBase64};
+use rustc_serialize::base64::{ToBase64, Config, Newline, CharacterSet};
 use std::ascii::AsciiExt;
-use super::http_headers::*;
+use http_headers::*;
 
 // #[derive(Clone,Debug)]
 pub struct Authentication {
@@ -19,7 +19,10 @@ pub struct Authentication {
     version: String,
 }
 
+pub static BASE64_AUTH: Config = Config {char_set: CharacterSet::Standard, newline: Newline::LF, pad: true, line_length: Some(60)};
+
 impl Authentication {
+
     pub fn new() -> Authentication {
         let dt = UTC::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
         let mut headers = Headers::new();
@@ -78,13 +81,13 @@ impl Authentication {
     }
 
     fn hashed_path(&self) -> String {
-        hash(SHA1, expand_string(&self.path).as_bytes()).to_base64(STANDARD)
+        hash(SHA1, expand_string(&self.path).as_bytes()).to_base64(BASE64_AUTH)
     }
 
     /// FIXME: this needs, eventually, to deal with IO and not just strings
     fn content_hash(&self) -> String {
         let body = expand_string(&self.body);
-        hash(SHA1, body.as_bytes()).to_base64(STANDARD)
+        hash(SHA1, body.as_bytes()).to_base64(BASE64_AUTH)
     }
 
     fn canonical_user_id(&self) -> String {
@@ -92,7 +95,7 @@ impl Authentication {
         if self.version == "1.0" {
             userid
         } else {
-            hash(SHA1, userid.as_bytes()).to_base64(STANDARD)
+            hash(SHA1, userid.as_bytes()).to_base64(BASE64_AUTH)
         }
     }
 
@@ -104,9 +107,22 @@ impl Authentication {
 
     fn encrypted_request(&self) -> String {
         match self.key {
-            Some(ref key) => key.private_encrypt(&self.canonical_request().as_bytes()).to_base64(STANDARD),
+            Some(ref key) => key.private_encrypt(&self.canonical_request().as_bytes()).to_base64(BASE64_AUTH),
             None => panic!("No private key provided!")
         }
+    }
+
+    pub fn as_headers(self) -> Headers {
+        let fin = self.set_timestamp();
+        let enc = fin.encrypted_request();
+        let mut headers = fin.headers;
+        let mut i = 1;
+        for h in enc.split('\n') {
+            let key = format!("x-Ops-Authorization-{}", i);
+            headers.set_raw(key, vec!(h.as_bytes().to_vec()));
+            i += 1;
+        }
+        headers
     }
 }
 
@@ -287,8 +303,29 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
             version: String::from("1.1"),
         };
         assert_eq!(&auth.encrypted_request(),
-                   "UfZD9dRz6rFu6LbP5Mo1oNHcWYxpNIcUfFCffJS1FQa0GtfU/vkt3/O5HuCM1wIFl/U0f5faH9EWpXWY5NwKR031Myxcabw4t4ZLO69CIh/3qx1XnjcZvt2wc2R9bx/43IWA/r8w8Q6decuu0f6ZlNheJeJhaYPI8piX/aH+uHBH8zTACZu8vMnl5MF3/OIlsZc8cemq6eKYstp8a8KYq9OmkB5IXIX6qVMJHA6fRvQEB/7j281Q7oI/O+lE8AmVyBbwruPb7Mp6s4839eYiOdjbDwFjYtbS3XgAjrHlaD7WFDlbAG7H8Dmvo+wBxmtNkszhzbBnEYtuwQqT8nM/8A==")
+                   "UfZD9dRz6rFu6LbP5Mo1oNHcWYxpNIcUfFCffJS1FQa0GtfU/vkt3/O5HuCM\n1wIFl/U0f5faH9EWpXWY5NwKR031Myxcabw4t4ZLO69CIh/3qx1XnjcZvt2w\nc2R9bx/43IWA/r8w8Q6decuu0f6ZlNheJeJhaYPI8piX/aH+uHBH8zTACZu8\nvMnl5MF3/OIlsZc8cemq6eKYstp8a8KYq9OmkB5IXIX6qVMJHA6fRvQEB/7j\n281Q7oI/O+lE8AmVyBbwruPb7Mp6s4839eYiOdjbDwFjYtbS3XgAjrHlaD7W\nFDlbAG7H8Dmvo+wBxmtNkszhzbBnEYtuwQqT8nM/8A==")
     }
+
+    #[test]
+    fn test_headers() {
+        let k0 = PKey::private_key_from_pem(&mut PRIVATE_KEY_DATA.as_bytes()).unwrap();
+
+        let auth = Authentication {
+            body: Some(String::from(BODY)),
+            date: String::from(DT),
+            headers: Headers::new(),
+            key: Some(k0),
+            method: Some(String::from("POST")),
+            path: Some(String::from(PATH)),
+            userid: Some(String::from(USER)),
+            version: String::from("1.1"),
+        };
+        let headers = auth.as_headers();
+
+        let header = headers.get_raw("x-ops-authorization-1").unwrap();
+    }
+
+
 
 }
 
