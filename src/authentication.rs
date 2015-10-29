@@ -19,7 +19,12 @@ pub struct Authentication {
     version: String,
 }
 
-pub static BASE64_AUTH: Config = Config {char_set: CharacterSet::Standard, newline: Newline::LF, pad: true, line_length: Some(60)};
+pub static BASE64_AUTH: Config = Config {
+    char_set: CharacterSet::Standard,
+    newline: Newline::LF,
+    pad: true,
+    line_length: Some(60),
+};
 
 impl Authentication {
 
@@ -100,15 +105,20 @@ impl Authentication {
     }
 
     fn canonical_request(&self) -> String {
-        format!("Method:{}\nHashed Path:{}\nX-Ops-Content-Hash:{}\nX-Ops-Timestamp:{}\nX-Ops-UserId:{}",
-                expand_string(&self.method), self.hashed_path(), self.content_hash(),
-                self.date, self.canonical_user_id())
+        format!("Method:{}\nHashed \
+                 Path:{}\nX-Ops-Content-Hash:{}\nX-Ops-Timestamp:{}\nX-Ops-UserId:{}",
+                expand_string(&self.method),
+                self.hashed_path(),
+                self.content_hash(),
+                self.date,
+                self.canonical_user_id())
     }
 
     fn encrypted_request(&self) -> String {
         match self.key {
-            Some(ref key) => key.private_encrypt(&self.canonical_request().as_bytes()).to_base64(BASE64_AUTH),
-            None => panic!("No private key provided!")
+            Some(ref key) =>
+                key.private_encrypt(&self.canonical_request().as_bytes()).to_base64(BASE64_AUTH),
+            None => panic!("No private key provided!"),
         }
     }
 
@@ -119,7 +129,7 @@ impl Authentication {
         let mut i = 1;
         for h in enc.split('\n') {
             let key = format!("x-Ops-Authorization-{}", i);
-            headers.set_raw(key, vec!(h.as_bytes().to_vec()));
+            headers.set_raw(key, vec![h.as_bytes().to_vec()]);
             i += 1;
         }
         headers
@@ -159,7 +169,7 @@ mod tests {
     const PATH: &'static str = "/organizations/clownco";
     const BODY: &'static str = "Spec Body";
     const USER: &'static str = "spec-user";
-    const DT: &'static str   = "2009-01-01T12:00:00Z";
+    const DT: &'static str = "2009-01-01T12:00:00Z";
 
     const PRIVATE_KEY_DATA: &'static str = r"
 -----BEGIN RSA PRIVATE KEY-----
@@ -191,17 +201,17 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
 -----END RSA PRIVATE KEY-----
 ";
 
-// const PUBLIC_KEY_DATA: &'static str = r"
-// -----BEGIN PUBLIC KEY-----
-// MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0ueqo76MXuP6XqZBILFz
-// iH/9AI7C6PaN5W0dSvkr9yInyGHSz/IR1+4tqvP2qlfKVKI4CP6BFH251Ft9qMUB
-// uAsnlAVQ1z0exDtIFFOyQCdR7iXmjBIWMSS4buBwRQXwDK7id1OxtU23qVJv+xwE
-// V0IzaaSJmaGLIbvRBD+qatfUuQJBMU/04DdJIwvLtZBYdC2219m5dUBQaa4bimL+
-// YN9EcsDzD9h9UxQo5ReK7b3cNMzJBKJWLzFBcJuePMzAnLFktr/RufX4wpXe6XJx
-// oVPaHo72GorLkwnQ0HYMTY8rehT4mDi1FI969LHCFFaFHSAaRnwdXaQkJmSfcxzC
-// YQIDAQAB
-// -----END PUBLIC KEY-----
-// ";
+    // const PUBLIC_KEY_DATA: &'static str = r"
+    // -----BEGIN PUBLIC KEY-----
+    // MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0ueqo76MXuP6XqZBILFz
+    // iH/9AI7C6PaN5W0dSvkr9yInyGHSz/IR1+4tqvP2qlfKVKI4CP6BFH251Ft9qMUB
+    // uAsnlAVQ1z0exDtIFFOyQCdR7iXmjBIWMSS4buBwRQXwDK7id1OxtU23qVJv+xwE
+    // V0IzaaSJmaGLIbvRBD+qatfUuQJBMU/04DdJIwvLtZBYdC2219m5dUBQaa4bimL+
+    // YN9EcsDzD9h9UxQo5ReK7b3cNMzJBKJWLzFBcJuePMzAnLFktr/RufX4wpXe6XJx
+    // oVPaHo72GorLkwnQ0HYMTY8rehT4mDi1FI969LHCFFaFHSAaRnwdXaQkJmSfcxzC
+    // YQIDAQAB
+    // -----END PUBLIC KEY-----
+    // ";
 
     #[test]
     fn test_squeeze_path() {
@@ -236,23 +246,26 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
     #[test]
     fn test_timestamp() {
         let auth = Authentication {
-            body: None,
-            date: String::from(DT),
-            headers: Headers::new(),
-            key: None,
-            method: None,
-            path: None,
-            userid: None,
-            version: String::from("1.1"),
-        }.set_timestamp();
-        assert_eq!(auth.headers.get::<OpsTimestamp>().unwrap().to_string(), "2009-01-01T12:00:00Z")
+                       body: None,
+                       date: String::from(DT),
+                       headers: Headers::new(),
+                       key: None,
+                       method: None,
+                       path: None,
+                       userid: None,
+                       version: String::from("1.1"),
+                   }
+                   .set_timestamp();
+        assert_eq!(auth.headers.get::<OpsTimestamp>().unwrap().to_string(),
+                   "2009-01-01T12:00:00Z")
     }
 
     #[test]
     fn test_userid() {
         let auth = Authentication::new().userid(USER);
         assert_eq!(auth.userid.unwrap(), "spec-user");
-        assert_eq!(auth.headers.get::<OpsUserId>().unwrap().to_string(), "spec-user")
+        assert_eq!(auth.headers.get::<OpsUserId>().unwrap().to_string(),
+                   "spec-user")
     }
 
     #[test]
@@ -285,7 +298,11 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
             userid: Some(String::from(USER)),
             version: String::from("1.1"),
         };
-        assert_eq!(auth.canonical_request(), "Method:POST\nHashed Path:YtBWDn1blGGuFIuKksdwXzHU9oE=\nX-Ops-Content-Hash:DFteJZPVv6WKdQmMqZUQUumUyRs=\nX-Ops-Timestamp:2009-01-01T12:00:00Z\nX-Ops-UserId:EAF7Wv/hbAudWV5ZkwKz40Z/lO0=")
+        assert_eq!(auth.canonical_request(),
+                   "Method:POST\nHashed \
+                    Path:YtBWDn1blGGuFIuKksdwXzHU9oE=\nX-Ops-Content-Hash:\
+                    DFteJZPVv6WKdQmMqZUQUumUyRs=\nX-Ops-Timestamp:2009-01-01T12:00:\
+                    00Z\nX-Ops-UserId:EAF7Wv/hbAudWV5ZkwKz40Z/lO0=")
     }
 
     #[test]
@@ -303,7 +320,11 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
             version: String::from("1.1"),
         };
         assert_eq!(&auth.encrypted_request(),
-                   "UfZD9dRz6rFu6LbP5Mo1oNHcWYxpNIcUfFCffJS1FQa0GtfU/vkt3/O5HuCM\n1wIFl/U0f5faH9EWpXWY5NwKR031Myxcabw4t4ZLO69CIh/3qx1XnjcZvt2w\nc2R9bx/43IWA/r8w8Q6decuu0f6ZlNheJeJhaYPI8piX/aH+uHBH8zTACZu8\nvMnl5MF3/OIlsZc8cemq6eKYstp8a8KYq9OmkB5IXIX6qVMJHA6fRvQEB/7j\n281Q7oI/O+lE8AmVyBbwruPb7Mp6s4839eYiOdjbDwFjYtbS3XgAjrHlaD7W\nFDlbAG7H8Dmvo+wBxmtNkszhzbBnEYtuwQqT8nM/8A==")
+                   "UfZD9dRz6rFu6LbP5Mo1oNHcWYxpNIcUfFCffJS1FQa0GtfU/vkt3/O5HuCM\n1wIFl/U0f5faH9EW\
+                    pXWY5NwKR031Myxcabw4t4ZLO69CIh/3qx1XnjcZvt2w\nc2R9bx/43IWA/r8w8Q6decuu0f6ZlNhe\
+                    JeJhaYPI8piX/aH+uHBH8zTACZu8\nvMnl5MF3/OIlsZc8cemq6eKYstp8a8KYq9OmkB5IXIX6qVMJ\
+                    HA6fRvQEB/7j\n281Q7oI/O+lE8AmVyBbwruPb7Mp6s4839eYiOdjbDwFjYtbS3XgAjrHlaD7W\nFD\
+                    lbAG7H8Dmvo+wBxmtNkszhzbBnEYtuwQqT8nM/8A==")
     }
 
     #[test]
@@ -328,4 +349,3 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
 
 
 }
-
