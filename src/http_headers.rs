@@ -10,3 +10,9 @@ header! {
 header! {
     (OpsContentHash, "X-Ops-Content-Hash") => [String]
 }
+header! {
+    (OpsApiInfo, "X-Ops-Server-API-Info") => [u8]
+}
+header! {
+    (ChefVersion, "X-Chef-Version") => [String]
+}
