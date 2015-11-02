@@ -2,16 +2,27 @@ use hyper::Url;
 use openssl::crypto::pkey::PKey;
 use serde_json;
 use serde_json::Value;
-use serde_json::de::Deserializer;
 use std::path::PathBuf;
 use std::env;
+use std::fmt;
 use std::fs::File;
 use std::io::Read;
 
 pub struct Config {
-    endpoint: Option<Url>,
-    user: Option<String>,
-    key: Option<PKey>,
+    pub endpoint: Option<Url>,
+    pub user: Option<String>,
+    pub key: Option<PKey>,
+    keypath: Option<String>,
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("endpoint", &self.endpoint)
+            .field("user", &self.user)
+            .field("keypath", &self.keypath)
+            .finish()
+    }
 }
 
 impl Config {
@@ -20,6 +31,7 @@ impl Config {
             endpoint: None,
             user: None,
             key: None,
+            keypath: None,
         }
     }
 
@@ -44,6 +56,7 @@ impl Config {
 
     pub fn key(mut self, path: &str) -> Config {
         let keypath = get_absolute_path(path);
+        self.keypath = Some(keypath.clone());
         match File::open(keypath) {
             Ok(mut fh) => {
                 self.key = Some(PKey::private_key_from_pem(&mut fh).unwrap());
