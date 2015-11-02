@@ -86,13 +86,22 @@ impl Authentication {
     }
 
     fn hashed_path(&self) -> String {
+        debug!("{:?}", &self.path);
         hash(SHA1, expand_string(&self.path).as_bytes()).to_base64(BASE64_AUTH)
     }
 
     /// FIXME: this needs, eventually, to deal with IO and not just strings
     fn content_hash(&self) -> String {
         let body = expand_string(&self.body);
-        hash(SHA1, body.as_bytes()).to_base64(BASE64_AUTH)
+        let content = hash(SHA1, body.as_bytes()).to_base64(BASE64_AUTH);
+        debug!("{:?}", content);
+        content
+    }
+
+    fn set_content_hash(mut self) -> Authentication {
+        let hsh = self.content_hash();
+        self.headers.set(OpsContentHash(hsh));
+        self
     }
 
     fn canonical_user_id(&self) -> String {
@@ -105,13 +114,16 @@ impl Authentication {
     }
 
     fn canonical_request(&self) -> String {
-        format!("Method:{}\nHashed \
-                 Path:{}\nX-Ops-Content-Hash:{}\nX-Ops-Timestamp:{}\nX-Ops-UserId:{}",
-                expand_string(&self.method),
-                self.hashed_path(),
-                self.content_hash(),
-                self.date,
-                self.canonical_user_id())
+        let cr = format!("Method:{}\nHashed \
+                          Path:{}\nX-Ops-Content-Hash:{}\nX-Ops-Timestamp:{}\nX-Ops-UserId:{}",
+                         expand_string(&self.method),
+                         self.hashed_path(),
+                         self.content_hash(),
+                         self.date,
+                         self.canonical_user_id());
+        debug!("{:?}", cr);
+        cr
+
     }
 
     fn encrypted_request(&self) -> String {
@@ -124,11 +136,12 @@ impl Authentication {
 
     pub fn as_headers(self) -> Headers {
         let fin = self.set_timestamp();
+        let fin = fin.set_content_hash();
         let enc = fin.encrypted_request();
         let mut headers = fin.headers;
         let mut i = 1;
         for h in enc.split('\n') {
-            let key = format!("x-Ops-Authorization-{}", i);
+            let key = format!("X-Ops-Authorization-{}", i);
             headers.set_raw(key, vec![h.as_bytes().to_vec()]);
             i += 1;
         }
