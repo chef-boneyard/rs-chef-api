@@ -1,13 +1,13 @@
 use chrono::*;
+use http_headers::*;
 use hyper::header::Headers;
 use openssl::crypto::hash::hash;
 use openssl::crypto::hash::Type::SHA1;
 use openssl::crypto::pkey::PKey;
 use rustc_serialize::base64::{ToBase64, Config, Newline, CharacterSet};
 use std::ascii::AsciiExt;
-use http_headers::*;
+use std::fmt;
 
-// #[derive(Clone,Debug)]
 pub struct Authentication {
     body: Option<String>,
     date: String,
@@ -26,8 +26,18 @@ pub static BASE64_AUTH: Config = Config {
     line_length: Some(60),
 };
 
-impl Authentication {
+impl fmt::Debug for Authentication {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Authentication")
+            .field("method", &self.method)
+            .field("userid", &self.userid)
+            .field("path", &self.path)
+            .field("body", &self.body)
+            .finish()
+    }
+}
 
+impl Authentication {
     pub fn new() -> Authentication {
         let dt = UTC::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
         let mut headers = Headers::new();
