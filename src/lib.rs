@@ -19,5 +19,8 @@ extern crate hyper;
 #[macro_use]
 extern crate log;
 
+extern crate serde_json;
+
 pub mod authentication;
 mod http_headers;
+pub mod config;

@@ -1,8 +1,12 @@
 use hyper::Url;
 use openssl::crypto::pkey::PKey;
+use serde_json;
+use serde_json::Value;
+use serde_json::de::Deserializer;
 use std::path::PathBuf;
 use std::env;
 use std::fs::File;
+use std::io::Read;
 
 pub struct Config {
     endpoint: Option<Url>,
@@ -19,9 +23,24 @@ impl Config {
         }
     }
 
-    // /// Load a configuration file from JSON
-    // pub fn from_json(path: &str) -> Config {
-    // }
+    /// Load a configuration file from JSON
+    pub fn from_json(path: &str) -> Config {
+        let path = get_absolute_path(path);
+        let cfg = Config::new();
+        match File::open(path) {
+            Ok(mut fh) => {
+                let mut data = String::new();
+                fh.read_to_string(&mut data);
+                let val: Value = serde_json::from_str(data.as_ref()).unwrap();
+                let obj = val.as_object().unwrap();
+                let cfg = cfg.key(obj.get("client_key").unwrap().as_string().unwrap());
+                let cfg = cfg.endpoint(obj.get("chef_server_url").unwrap().as_string().unwrap());
+                let cfg = cfg.user(obj.get("node_name").unwrap().as_string().unwrap());
+                cfg
+            },
+            Err(_) => panic!("Couldn't open config file")
+        }
+    }
 
     pub fn key(mut self, path: &str) -> Config {
         let keypath = get_absolute_path(path);
@@ -67,6 +86,14 @@ mod tests {
 
     const ENDPOINT: &'static str = "https://localhost/organizations/clownco";
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
+    const CONFIG: &'static str = "fixtures/config.json";
+
+    #[test]
+    fn test_from_json() {
+        let cfg = Config::from_json(CONFIG);
+        assert_eq!(cfg.endpoint.unwrap().serialize_path().unwrap(),
+                   "/organizations/rs_chef_api")
+    }
 
     #[test]
     fn test_config_endpoint() {
