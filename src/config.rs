@@ -7,12 +7,12 @@ use std::env;
 use std::fmt;
 use std::fs::File;
 use std::io::Read;
+use std::error::Error;
 
 pub struct Config {
     pub endpoint: Option<Url>,
     pub user: Option<String>,
-    pub key: Option<PKey>,
-    keypath: Option<String>,
+    pub keypath: Option<String>,
 }
 
 impl fmt::Debug for Config {
@@ -30,7 +30,6 @@ impl Config {
         Config {
             endpoint: None,
             user: None,
-            key: None,
             keypath: None,
         }
     }
@@ -56,14 +55,8 @@ impl Config {
 
     pub fn key(mut self, path: &str) -> Config {
         let keypath = get_absolute_path(path);
-        self.keypath = Some(keypath.clone());
-        match File::open(keypath) {
-            Ok(mut fh) => {
-                self.key = Some(PKey::private_key_from_pem(&mut fh).unwrap());
-                self
-            }
-            Err(_) => panic!("Couldn't open private key"),
-        }
+        self.keypath = Some(keypath);
+        self
     }
 
     pub fn endpoint(mut self, endpoint: &str) -> Config {
@@ -79,6 +72,28 @@ impl Config {
         self.user = Some(String::from(user));
         self
     }
+
+    pub fn organization_path(&self) -> String {
+        match self.endpoint {
+            Some(ref endpoint) => {
+                endpoint.serialize_path().unwrap()
+            },
+            None => panic!("Can't find an endpoint")
+        }
+    }
+
+    pub fn url_base(&self) -> String {
+        match self.endpoint {
+            Some(ref endpoint) => {
+                let host = &endpoint.serialize_host().unwrap();
+                let port = &endpoint.port_or_default().unwrap();
+                let scheme = &endpoint.scheme;
+                format!("{}://{}:{}", scheme, host, port)
+            },
+            None => panic!("Can't find an endpoint")
+        }
+    }
+
 }
 
 fn get_absolute_path(val: &str) -> String {
@@ -116,10 +131,16 @@ mod tests {
     }
 
     #[test]
-    fn test_load_key() {
-        let mut fh = File::open(PRIVATE_KEY).unwrap();
-        let k0 = PKey::private_key_from_pem(&mut fh).unwrap();
-        let cfg = Config::new().key(PRIVATE_KEY);
-        assert!(cfg.key.unwrap().public_eq(&k0))
+    fn test_config_organization() {
+        let cfg = Config::new().endpoint(ENDPOINT);
+        assert_eq!(cfg.organization_path(),
+                   "/organizations/clownco")
     }
+
+    #[test]
+    fn test_config_base_url() {
+        let cfg = Config::new().endpoint(ENDPOINT);
+        assert_eq!(cfg.url_base(), "https://localhost:443")
+    }
+
 }

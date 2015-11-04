@@ -7,6 +7,8 @@ use openssl::crypto::pkey::PKey;
 use rustc_serialize::base64::{ToBase64, Config, Newline, CharacterSet};
 use std::ascii::AsciiExt;
 use std::fmt;
+use std::fs::File;
+use utils::squeeze_path;
 
 pub struct Authentication {
     body: Option<String>,
@@ -60,9 +62,14 @@ impl Authentication {
         self
     }
 
-    pub fn key(mut self, key: PKey) -> Authentication {
-        self.key = Some(key);
-        self
+    pub fn key(mut self, keypath: &str) -> Authentication {
+        match File::open(keypath) {
+            Ok(mut fh) => {
+                self.key = Some(PKey::private_key_from_pem(&mut fh).unwrap());
+                self
+            }
+            Err(_) => panic!("Couldn't open private key"),
+        }
     }
 
     pub fn method(mut self, method: &str) -> Authentication {
@@ -166,33 +173,21 @@ fn expand_string(val: &Option<String>) -> String {
     }
 }
 
-/// Remove duplicate and trailing slashes from a path
-fn squeeze_path(pth: String) -> String {
-    let mut st = String::new();
-    for p in pth.split('/').filter(|&x| x != "") {
-        st.push('/');
-        st.push_str(p)
-    }
-    if st.len() == 0 {
-        String::from("/")
-    } else {
-        st
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::Authentication;
-    use super::squeeze_path;
 
     use http_headers::*;
     use hyper::header::Headers;
     use openssl::crypto::pkey::PKey;
+    use std::fs::File;
 
     const PATH: &'static str = "/organizations/clownco";
     const BODY: &'static str = "Spec Body";
     const USER: &'static str = "spec-user";
     const DT: &'static str = "2009-01-01T12:00:00Z";
+
+    const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
     const PRIVATE_KEY_DATA: &'static str = r"
 -----BEGIN RSA PRIVATE KEY-----
@@ -237,33 +232,17 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
     // ";
 
     #[test]
-    fn test_squeeze_path() {
-        let path = String::from("/any/given/path");
-        assert_eq!(path, squeeze_path(path.clone()))
-    }
-
-    #[test]
-    fn test_squeeze_path_with_duplicate_slashes() {
-        let path = String::from("/any//given/path");
-        assert_eq!("/any/given/path", squeeze_path(path.clone()))
-    }
-
-    #[test]
-    fn test_squeeze_path_with_many_duplicate_slashes() {
-        let path = String::from("/any//old/given//path");
-        assert_eq!("/any/old/given/path", squeeze_path(path.clone()))
-    }
-
-    #[test]
-    fn test_squeeze_path_with_trailing_slash() {
-        let path = String::from("/any/given/path/");
-        assert_eq!("/any/given/path", squeeze_path(path.clone()))
-    }
-
-    #[test]
     fn test_new_authentication() {
         let auth = Authentication::new();
         assert_eq!(auth.body, None)
+    }
+
+    #[test]
+    fn test_load_key() {
+        let mut fh = File::open(PRIVATE_KEY).unwrap();
+        let k0 = PKey::private_key_from_pem(&mut fh).unwrap();
+        let auth = Authentication::new().key(PRIVATE_KEY);
+        assert!(cfg.key.unwrap().public_eq(&k0))
     }
 
     #[test]
