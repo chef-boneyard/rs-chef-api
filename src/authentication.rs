@@ -345,7 +345,7 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
         };
         let headers = auth.as_headers();
 
-        let header = headers.get_raw("x-ops-authorization-1").unwrap();
+        let _ = headers.get_raw("x-ops-authorization-1").unwrap();
     }
 
 

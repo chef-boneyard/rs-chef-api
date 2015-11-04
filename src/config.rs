@@ -1,5 +1,4 @@
 use hyper::Url;
-use openssl::crypto::pkey::PKey;
 use serde_json;
 use serde_json::Value;
 use std::path::PathBuf;
@@ -7,8 +6,8 @@ use std::env;
 use std::fmt;
 use std::fs::File;
 use std::io::Read;
-use std::error::Error;
 
+#[derive(Clone)]
 pub struct Config {
     pub endpoint: Option<Url>,
     pub user: Option<String>,
@@ -41,7 +40,7 @@ impl Config {
         match File::open(path) {
             Ok(mut fh) => {
                 let mut data = String::new();
-                fh.read_to_string(&mut data);
+                let _ = fh.read_to_string(&mut data);
                 let val: Value = serde_json::from_str(data.as_ref()).unwrap();
                 let obj = val.as_object().unwrap();
                 let cfg = cfg.key(obj.get("client_key").unwrap().as_string().unwrap());
@@ -109,11 +108,7 @@ fn get_absolute_path(val: &str) -> String {
 mod tests {
     use super::*;
 
-    use openssl::crypto::pkey::PKey;
-    use std::fs::File;
-
     const ENDPOINT: &'static str = "https://localhost/organizations/clownco";
-    const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
     const CONFIG: &'static str = "fixtures/config.json";
 
     #[test]
