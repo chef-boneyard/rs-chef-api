@@ -242,7 +242,7 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
         let mut fh = File::open(PRIVATE_KEY).unwrap();
         let k0 = PKey::private_key_from_pem(&mut fh).unwrap();
         let auth = Authentication::new().key(PRIVATE_KEY);
-        assert!(cfg.key.unwrap().public_eq(&k0))
+        assert!(auth.key.unwrap().public_eq(&k0))
     }
 
     #[test]
