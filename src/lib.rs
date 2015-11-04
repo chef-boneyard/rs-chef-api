@@ -23,5 +23,7 @@ extern crate serde_json;
 
 pub mod authentication;
 mod http_headers;
+mod utils;
 pub mod config;
+pub mod api_client;
 pub mod requests;
