@@ -3,25 +3,14 @@ use serde_json;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::env;
-use std::fmt;
 use std::fs::File;
 use std::io::Read;
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Config {
     pub endpoint: Option<Url>,
     pub user: Option<String>,
     pub keypath: Option<String>,
-}
-
-impl fmt::Debug for Config {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Config")
-            .field("endpoint", &self.endpoint)
-            .field("user", &self.user)
-            .field("keypath", &self.keypath)
-            .finish()
-    }
 }
 
 impl Config {
