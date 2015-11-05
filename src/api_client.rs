@@ -70,6 +70,11 @@ impl ApiClient {
         ApiClient { config: config }
     }
 
+    pub fn from_json_config(pth: &str) -> ApiClient {
+        let cfg = Config::from_json(pth);
+        ApiClient::new(cfg)
+    }
+
     pub fn config(mut self, config: Config) -> ApiClient {
         self.config = config;
         self

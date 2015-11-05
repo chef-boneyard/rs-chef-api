@@ -5,13 +5,11 @@ extern crate log;
 extern crate env_logger;
 
 use chef_api::api_client::ApiClient;
-use chef_api::config::Config;
 use chef_api::requests::node::NodesRequest;
 
 pub fn main() {
     env_logger::init().unwrap();
-    let cfg = Config::from_json("/Users/thom/.chef/knife.json");
-    let client = ApiClient::new(cfg);
+    let client = ApiClient::from_json_config("/Users/thom/.chef/knife.json");
     let nodes = NodesRequest::new();
 
     let res = client.run(nodes);
