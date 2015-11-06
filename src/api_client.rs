@@ -46,13 +46,18 @@ impl From<IoError> for Error {
 #[derive(Debug)]
 pub struct Response {
     pub hyper_response: HyperResponse,
-    pub body: String
+    pub body: String,
 }
 
 impl Response {
     fn from_hyper_response(mut hyper_response: HyperResponse) -> Result<Response, IoError> {
         let mut body = String::new();
-        hyper_response.read_to_string(&mut body).map(|_| Response{ hyper_response: hyper_response, body: body })
+        hyper_response.read_to_string(&mut body).map(|_| {
+            Response {
+                hyper_response: hyper_response,
+                body: body,
+            }
+        })
     }
 
     pub fn from_json<T: Deserialize>(&self) -> Result<T, Error> {
@@ -81,7 +86,8 @@ impl ApiClient {
     }
 
     pub fn run<T>(self, req: T) -> Result<Response, Error>
-        where T: Request {
+        where T: Request
+    {
         let org = &self.config.organization_path();
         let base = &self.config.url_base();
         let method: Method = req.method();

@@ -2,7 +2,7 @@ use api_client::Request;
 use hyper::method::Method;
 use utils::squeeze_path;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct NodesRequest {
     path: String,
 }
@@ -39,6 +39,7 @@ mod tests {
     #[test]
     fn test_nodes_path() {
         let nr = NodesRequest::new();
-        assert_eq!(nr.full_path("/organizations/clownco/"), "/organizations/clownco/nodes")
+        assert_eq!(nr.full_path("/organizations/clownco/"),
+                   "/organizations/clownco/nodes")
     }
 }

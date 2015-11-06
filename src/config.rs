@@ -36,8 +36,8 @@ impl Config {
                 let cfg = cfg.endpoint(obj.get("chef_server_url").unwrap().as_string().unwrap());
                 let cfg = cfg.user(obj.get("node_name").unwrap().as_string().unwrap());
                 cfg
-            },
-            Err(_) => panic!("Couldn't open config file")
+            }
+            Err(_) => panic!("Couldn't open config file"),
         }
     }
 
@@ -65,8 +65,8 @@ impl Config {
         match self.endpoint {
             Some(ref endpoint) => {
                 endpoint.serialize_path().unwrap()
-            },
-            None => panic!("Can't find an endpoint")
+            }
+            None => panic!("Can't find an endpoint"),
         }
     }
 
@@ -77,8 +77,8 @@ impl Config {
                 let port = &endpoint.port_or_default().unwrap();
                 let scheme = &endpoint.scheme;
                 format!("{}://{}:{}", scheme, host, port)
-            },
-            None => panic!("Can't find an endpoint")
+            }
+            None => panic!("Can't find an endpoint"),
         }
     }
 
@@ -117,8 +117,7 @@ mod tests {
     #[test]
     fn test_config_organization() {
         let cfg = Config::new().endpoint(ENDPOINT);
-        assert_eq!(cfg.organization_path(),
-                   "/organizations/clownco")
+        assert_eq!(cfg.organization_path(), "/organizations/clownco")
     }
 
     #[test]

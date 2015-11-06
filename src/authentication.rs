@@ -31,11 +31,11 @@ pub static BASE64_AUTH: Config = Config {
 impl fmt::Debug for Authentication {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Authentication")
-            .field("method", &self.method)
-            .field("userid", &self.userid)
-            .field("path", &self.path)
-            .field("body", &self.body)
-            .finish()
+         .field("method", &self.method)
+         .field("userid", &self.userid)
+         .field("path", &self.path)
+         .field("body", &self.body)
+         .finish()
     }
 }
 
