@@ -10,11 +10,12 @@ use std::fmt;
 use std::fs::File;
 use utils::squeeze_path;
 
+#[derive(Clone)]
 pub struct Authentication {
     body: Option<String>,
     date: String,
     headers: Headers,
-    key: Option<PKey>,
+    keypath: Option<String>,
     method: Option<String>,
     path: Option<String>,
     userid: Option<String>,
@@ -35,6 +36,7 @@ impl fmt::Debug for Authentication {
          .field("userid", &self.userid)
          .field("path", &self.path)
          .field("body", &self.body)
+         .field("keypath", &self.keypath)
          .finish()
     }
 }
@@ -48,7 +50,7 @@ impl Authentication {
             body: None,
             date: dt,
             headers: headers,
-            key: None,
+            keypath: None,
             method: None,
             path: None,
             userid: None,
@@ -63,13 +65,9 @@ impl Authentication {
     }
 
     pub fn key(mut self, keypath: &str) -> Authentication {
-        match File::open(keypath) {
-            Ok(mut fh) => {
-                self.key = Some(PKey::private_key_from_pem(&mut fh).unwrap());
-                self
-            }
-            Err(_) => panic!("Couldn't open private key"),
-        }
+        let key = String::from(keypath);
+        self.keypath = Some(key);
+        self
     }
 
     pub fn method(mut self, method: &str) -> Authentication {
@@ -103,11 +101,10 @@ impl Authentication {
     }
 
     fn hashed_path(&self) -> String {
-        debug!("{:?}", &self.path);
+        debug!("Path is: {:?}", &self.path);
         hash(SHA1, expand_string(&self.path).as_bytes()).to_base64(BASE64_AUTH)
     }
 
-    /// FIXME: this needs, eventually, to deal with IO and not just strings
     fn content_hash(&self) -> String {
         let body = expand_string(&self.body);
         let content = hash(SHA1, body.as_bytes()).to_base64(BASE64_AUTH);
@@ -138,16 +135,22 @@ impl Authentication {
                          self.content_hash(),
                          self.date,
                          self.canonical_user_id());
-        debug!("{:?}", cr);
+        debug!("Canonical Request is: {:?}", cr);
         cr
 
     }
 
     fn encrypted_request(&self) -> String {
-        match self.key {
-            Some(ref key) =>
-                key.private_encrypt(&self.canonical_request().as_bytes()).to_base64(BASE64_AUTH),
-            None => panic!("No private key provided!"),
+        if let Some(ref key) = self.keypath {
+            match File::open(key) {
+                Ok(mut fh) => {
+                    let key = PKey::private_key_from_pem(&mut fh).unwrap();
+                    key.private_encrypt(&self.canonical_request().as_bytes()).to_base64(BASE64_AUTH)
+                }
+                Err(_) => panic!("Couldn't open private key"),
+            }
+        } else {
+            panic!("No key path provided!")
         }
     }
 
@@ -179,8 +182,6 @@ mod tests {
 
     use http_headers::*;
     use hyper::header::Headers;
-    use openssl::crypto::pkey::PKey;
-    use std::fs::File;
 
     const PATH: &'static str = "/organizations/clownco";
     const BODY: &'static str = "Spec Body";
@@ -189,60 +190,10 @@ mod tests {
 
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
-    const PRIVATE_KEY_DATA: &'static str = r"
------BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA0ueqo76MXuP6XqZBILFziH/9AI7C6PaN5W0dSvkr9yInyGHS
-z/IR1+4tqvP2qlfKVKI4CP6BFH251Ft9qMUBuAsnlAVQ1z0exDtIFFOyQCdR7iXm
-jBIWMSS4buBwRQXwDK7id1OxtU23qVJv+xwEV0IzaaSJmaGLIbvRBD+qatfUuQJB
-MU/04DdJIwvLtZBYdC2219m5dUBQaa4bimL+YN9EcsDzD9h9UxQo5ReK7b3cNMzJ
-BKJWLzFBcJuePMzAnLFktr/RufX4wpXe6XJxoVPaHo72GorLkwnQ0HYMTY8rehT4
-mDi1FI969LHCFFaFHSAaRnwdXaQkJmSfcxzCYQIDAQABAoIBAQCW3I4sKN5B9jOe
-xq/pkeWBq4OvhW8Ys1yW0zFT8t6nHbB1XrwscQygd8gE9BPqj3e0iIEqtdphbPmj
-VHqTYbC0FI6QDClifV7noTwTBjeIOlgZ0NSUN0/WgVzIOxUz2mZ2vBZUovKILPqG
-TOi7J7RXMoySMdcXpP1f+PgvYNcnKsT72UcWaSXEV8/zo+Zm/qdGPVWwJonri5Mp
-DVm5EQSENBiRyt028rU6ElXORNmoQpVjDVqZ1gipzXkifdjGyENw2rt4V/iKYD7V
-5iqXOsvP6Cemf4gbrjunAgDG08S00kiUgvVWcdXW+dlsR2nCvH4DOEe3AYYh/aH8
-DxEE7FbtAoGBAPcNO8fJ56mNw0ow4Qg38C+Zss/afhBOCfX4O/SZKv/roRn5+gRM
-KRJYSVXNnsjPI1plzqR4OCyOrjAhtuvL4a0DinDzf1+fiztyNohwYsW1vYmqn3ti
-EN0GhSgE7ppZjqvLQ3f3LUTxynhA0U+k9wflb4irIlViTUlCsOPkrNJDAoGBANqL
-Q+vvuGSsmRLU/Cenjy+Mjj6+QENg51dz34o8JKuVKIPKU8pNnyeLa5fat0qD2MHm
-OB9opeQOcw0dStodxr6DB3wi83bpjeU6BWUGITNiWEaZEBrQ0aiqNJJKrrHm8fAZ
-9o4l4oHc4hI0kYVYYDuxtKuVJrzZiEapTwoOcYiLAoGBAI/EWbeIHZIj9zOjgjEA
-LHvm25HtulLOtyk2jd1njQhlHNk7CW2azIPqcLLH99EwCYi/miNH+pijZ2aHGCXb
-/bZrSxM0ADmrZKDxdB6uGCyp+GS2sBxjEyEsfCyvwhJ8b3Q100tqwiNO+d5FCglp
-HICx2dgUjuRVUliBwOK93nx1AoGAUI8RhIEjOYkeDAESyhNMBr0LGjnLOosX+/as
-qiotYkpjWuFULbibOFp+WMW41vDvD9qrSXir3fstkeIAW5KqVkO6mJnRoT3Knnra
-zjiKOITCAZQeiaP8BO5o3pxE9TMqb9VCO3ffnPstIoTaN4syPg7tiGo8k1SklVeH
-2S8lzq0CgYAKG2fljIYWQvGH628rp4ZcXS4hWmYohOxsnl1YrszbJ+hzR+IQOhGl
-YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
-8uLA+DdQm5mg4vd1GTiSK65q/3EeoBlUaVor3HhLFki+i9qpT8CBsg==
------END RSA PRIVATE KEY-----
-";
-
-    // const PUBLIC_KEY_DATA: &'static str = r"
-    // -----BEGIN PUBLIC KEY-----
-    // MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0ueqo76MXuP6XqZBILFz
-    // iH/9AI7C6PaN5W0dSvkr9yInyGHSz/IR1+4tqvP2qlfKVKI4CP6BFH251Ft9qMUB
-    // uAsnlAVQ1z0exDtIFFOyQCdR7iXmjBIWMSS4buBwRQXwDK7id1OxtU23qVJv+xwE
-    // V0IzaaSJmaGLIbvRBD+qatfUuQJBMU/04DdJIwvLtZBYdC2219m5dUBQaa4bimL+
-    // YN9EcsDzD9h9UxQo5ReK7b3cNMzJBKJWLzFBcJuePMzAnLFktr/RufX4wpXe6XJx
-    // oVPaHo72GorLkwnQ0HYMTY8rehT4mDi1FI969LHCFFaFHSAaRnwdXaQkJmSfcxzC
-    // YQIDAQAB
-    // -----END PUBLIC KEY-----
-    // ";
-
     #[test]
     fn test_new_authentication() {
         let auth = Authentication::new();
         assert_eq!(auth.body, None)
-    }
-
-    #[test]
-    fn test_load_key() {
-        let mut fh = File::open(PRIVATE_KEY).unwrap();
-        let k0 = PKey::private_key_from_pem(&mut fh).unwrap();
-        let auth = Authentication::new().key(PRIVATE_KEY);
-        assert!(auth.key.unwrap().public_eq(&k0))
     }
 
     #[test]
@@ -251,7 +202,7 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
                        body: None,
                        date: String::from(DT),
                        headers: Headers::new(),
-                       key: None,
+                       keypath: None,
                        method: None,
                        path: None,
                        userid: None,
@@ -294,7 +245,7 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
             body: Some(String::from(BODY)),
             date: String::from(DT),
             headers: Headers::new(),
-            key: None,
+            keypath: None,
             method: Some(String::from("POST")),
             path: Some(String::from(PATH)),
             userid: Some(String::from(USER)),
@@ -309,13 +260,11 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
 
     #[test]
     fn test_private_key() {
-        let k0 = PKey::private_key_from_pem(&mut PRIVATE_KEY_DATA.as_bytes()).unwrap();
-
         let auth = Authentication {
             body: Some(String::from(BODY)),
             date: String::from(DT),
             headers: Headers::new(),
-            key: Some(k0),
+            keypath: Some(String::from(PRIVATE_KEY)),
             method: Some(String::from("POST")),
             path: Some(String::from(PATH)),
             userid: Some(String::from(USER)),
@@ -331,13 +280,11 @@ YlkUQYXhy9JixmUUKtH+NXkKX7Lyc8XYw5ETr7JBT3ifs+G7HruDjVG78EJVojbd
 
     #[test]
     fn test_headers() {
-        let k0 = PKey::private_key_from_pem(&mut PRIVATE_KEY_DATA.as_bytes()).unwrap();
-
         let auth = Authentication {
             body: Some(String::from(BODY)),
             date: String::from(DT),
             headers: Headers::new(),
-            key: Some(k0),
+            keypath: Some(String::from(PRIVATE_KEY)),
             method: Some(String::from("POST")),
             path: Some(String::from(PATH)),
             userid: Some(String::from(USER)),

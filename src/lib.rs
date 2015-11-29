@@ -2,6 +2,9 @@
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
 
+#![feature(custom_derive, plugin, custom_attribute)]
+#![plugin(serde_macros)]
+
 // #![deny(missing_docs,
 //         missing_debug_implementations, missing_copy_implementations,
 //         trivial_casts, trivial_numeric_casts,
@@ -12,6 +15,7 @@
 extern crate openssl;
 extern crate rustc_serialize;
 extern crate chrono;
+extern crate url;
 
 #[macro_use]
 extern crate hyper;

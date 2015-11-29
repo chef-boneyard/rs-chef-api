@@ -9,12 +9,13 @@ log = "0.3"
 rustc-serialize = "0.3"
 clippy = {version = "0.0.21", optional = true}
 hyper = {version = "0.6", features = [ "serde-serialization" ] }
+url = "*"
 chrono = "0.2"
-# requires https://github.com/sfackler/rust-openssl/pull/300
-openssl = "0.6"
+openssl = "0.7"
 env_logger = "0.3"
-serde = "0.6"
-serde_json = "0.6"
+serde = "*"
+serde_macros = "*"
+serde_json = "*"
 
 [features]
 default = []

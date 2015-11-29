@@ -1,0 +1,19 @@
+{
+  "name": "test",
+  "chef_environment": "_default",
+  "json_class": "Chef::Node",
+  "chef_type": "node",
+  "run_list": [
+    "recipe[test::default]"
+  ],
+  "normal": {
+    "ssh_key": "test",
+    "deeper": {
+      "deep_key": [ "a", "b" ]
+    },
+    "tags": [
+      "foo",
+      "bar"
+    ]
+  }
+}

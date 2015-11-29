@@ -1,5 +1,7 @@
 target
 Cargo.lock
 
+.cargo
+
 # ignore rustfmt generated backups
 *.bk

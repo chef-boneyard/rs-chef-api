@@ -4,7 +4,6 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::env;
 use std::fs::File;
-use std::io::Read;
 
 #[derive(Clone,Debug)]
 pub struct Config {
@@ -27,10 +26,8 @@ impl Config {
         let path = get_absolute_path(path);
         let cfg = Config::new();
         match File::open(path) {
-            Ok(mut fh) => {
-                let mut data = String::new();
-                let _ = fh.read_to_string(&mut data);
-                let val: Value = serde_json::from_str(data.as_ref()).unwrap();
+            Ok(fh) => {
+                let val: Value = serde_json::from_reader(fh).unwrap();
                 let obj = val.as_object().unwrap();
                 let cfg = cfg.key(obj.get("client_key").unwrap().as_string().unwrap());
                 let cfg = cfg.endpoint(obj.get("chef_server_url").unwrap().as_string().unwrap());
