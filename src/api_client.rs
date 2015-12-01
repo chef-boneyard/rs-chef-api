@@ -1,7 +1,6 @@
 use authentication::Authentication;
 use config::Config;
 use http_headers::*;
-use hyper::client::Body;
 use hyper::client::Response as HyperResponse;
 use hyper::Client as HyperClient;
 use hyper::header::{Accept, ContentType, qitem};
@@ -92,59 +91,39 @@ impl ApiClient {
     }
 
     pub fn get(&self, path: &str) -> Result<Response, Error> {
-        let userid = &self.config.user.clone().unwrap();
-
-        let auth = Authentication::new();
-        let auth = auth.path(path);
-        let auth = auth.key(self.config.keypath.clone().unwrap().as_ref());
-        let auth = auth.method("get");
-        let auth = auth.userid(userid.as_ref());
-
-        let url = try!(format!("{}{}", &self.config.url_base(), path).into_url());
-        debug!("In get, URL is {:?}", url);
-        let client = HyperClient::new();
-        let client = client.request(Method::Get, url);
-        let headers = auth.as_headers();
-        let mut headers = headers.clone();
-
-        let json = Mime(TopLevel::Application, SubLevel::Json, vec![]);
-        headers.set(Accept(vec![qitem(json.clone())]));
-        headers.set(ContentType(json));
-        headers.set(OpsApiInfo(1));
-        headers.set(ChefVersion(String::from("12.5.1")));
-
-        let client = client.headers(headers);
-
-        let resp = try!(client.send());
-        let resp = try!(Response::from_hyper_response(resp));
-
-        if resp.hyper_response.status.is_success() {
-            Ok(resp)
-        } else {
-            Err(Error::UnsuccessfulResponse(resp))
-        }
+        self.send_with_body(path, "", "get")
     }
 
     pub fn put<B>(&self, path: &str, body: B) -> Result<Response, Error>
         where B: Serialize
     {
+        let body = try!(serde_json::to_string(&body).map_err(|e| Error::Json(e)));
+        self.send_with_body(path, body.as_ref(), "put")
+    }
+
+    fn send_with_body(&self, path: &str, body: &str, method: &str) -> Result<Response, Error> {
         let userid = &self.config.user.clone().unwrap();
 
         let auth = Authentication::new();
         let auth = auth.path(path);
         let auth = auth.key(self.config.keypath.clone().unwrap().as_ref());
-        let auth = auth.method("put");
+        let auth = auth.method(method);
         let auth = auth.userid(userid.as_ref());
 
         let url = try!(format!("{}{}", &self.config.url_base(), path).into_url());
-        debug!("In get, URL is {:?}", url);
-
-        let body = try!(serde_json::to_string(&body).map_err(|e| Error::Json(e)));
 
         let auth = auth.body(body.as_ref());
 
+        let mth = match method {
+            "put" => Method::Put,
+            "post" => Method::Post,
+            "delete" => Method::Delete,
+            "head" => Method::Head,
+            _ => Method::Get,
+        };
+
         let client = HyperClient::new();
-        let client = client.request(Method::Put, url);
+        let client = client.request(mth, url);
         let client = client.body(body.as_bytes());
 
         let headers = auth.as_headers();
