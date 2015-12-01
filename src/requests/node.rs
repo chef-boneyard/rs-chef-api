@@ -5,42 +5,29 @@ use std::collections::HashMap;
 use std::io;
 use std::io::{Cursor, Read, ErrorKind};
 
-#[derive(Debug,Clone,Serialize,Deserialize)]
+chef_json_type!(NodeJsonClass, "Chef::Node");
+chef_json_type!(NodeChefType, "node");
+
+#[derive(Debug,Clone,Serialize,Deserialize,Default)]
 pub struct Node {
     #[serde(default)]
     name: Option<String>,
     #[serde(default)]
-    chef_type: String,
+    chef_type: NodeChefType,
     #[serde(default)]
-    json_class: String,
+    json_class: NodeJsonClass,
     #[serde(default)]
     chef_environment: String,
     #[serde(default)]
-    run_list: Option<Vec<String>>,
+    run_list: Vec<String>,
     #[serde(default)]
-    normal: Option<HashMap<String, Value>>,
+    normal: HashMap<String, Value>,
     #[serde(default)]
-    automatic: Option<HashMap<String, Value>>,
+    automatic: HashMap<String, Value>,
     #[serde(default)]
-    default: Option<HashMap<String, Value>>,
+    default: HashMap<String, Value>,
     #[serde(default,rename(json="override"))]
-    overrides: Option<HashMap<String, Value>>,
-}
-
-impl Default for Node {
-    fn default() -> Node {
-        Node {
-            name: None,
-            chef_type: String::from("node"),
-            json_class: String::from("Chef::Node"),
-            chef_environment: String::from("_default"),
-            run_list: Some(vec![]),
-            normal: Some(HashMap::new()),
-            automatic: Some(HashMap::new()),
-            default: Some(HashMap::new()),
-            overrides: Some(HashMap::new()),
-        }
-    }
+    overrides: HashMap<String, Value>,
 }
 
 impl Read for Node {
