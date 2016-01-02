@@ -1,3 +1,7 @@
+use api_client::{Error, Response};
+use serde_json;
+use serde_json::Value;
+
 /// Remove duplicate and trailing slashes from a path
 pub fn squeeze_path(pth: String) -> String {
     let mut st = String::new();
@@ -9,6 +13,28 @@ pub fn squeeze_path(pth: String) -> String {
         String::from("/")
     } else {
         st
+    }
+}
+
+/// The Chef Server returns lists of objects in the form
+/// [ "name", "https://chef.local/type/name"]
+/// In general, we don't care about the URL, so just give return
+/// a list of the names
+pub fn decode_list(r: Response) -> Result<Vec<String>, Error> {
+    let data: Result<Value, _> = serde_json::from_str(&*r.body);
+    match data {
+        Ok(data) => {
+            if let Some(obj) = data.as_object() {
+                let mut resp = vec![];
+                for (key, _) in obj.iter() {
+                    resp.push(key.clone());
+                }
+                Ok(resp)
+            } else {
+                Err(Error::Generic)
+            }
+        }
+        Err(e) => Err(Error::Json(e)),
     }
 }
 

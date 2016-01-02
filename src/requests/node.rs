@@ -1,9 +1,10 @@
-use api_client::{ApiClient, Error};
+use api_client::{ApiClient, Error, Response};
 use serde_json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io;
 use std::io::{Cursor, Read, ErrorKind};
+use utils::decode_list;
 
 chef_json_type!(NodeJsonClass, "Chef::Node");
 chef_json_type!(NodeChefType, "node");
@@ -11,23 +12,23 @@ chef_json_type!(NodeChefType, "node");
 #[derive(Debug,Clone,Serialize,Deserialize,Default)]
 pub struct Node {
     #[serde(default)]
-    name: Option<String>,
+    pub name: Option<String>,
     #[serde(default)]
     chef_type: NodeChefType,
     #[serde(default)]
     json_class: NodeJsonClass,
     #[serde(default)]
-    chef_environment: String,
+    pub chef_environment: String,
     #[serde(default)]
-    run_list: Vec<String>,
+    pub run_list: Vec<String>,
     #[serde(default)]
-    normal: HashMap<String, Value>,
+    pub normal: HashMap<String, Value>,
     #[serde(default)]
-    automatic: HashMap<String, Value>,
+    pub automatic: HashMap<String, Value>,
     #[serde(default)]
-    default: HashMap<String, Value>,
+    pub default: HashMap<String, Value>,
     #[serde(default,rename(json="override"))]
-    overrides: HashMap<String, Value>,
+    pub overrides: HashMap<String, Value>,
 }
 
 impl Read for Node {
@@ -42,6 +43,10 @@ impl Read for Node {
 }
 
 impl Node {
+    pub fn new(name: &str) -> Node {
+        Node { name: Some(String::from(name)), ..Default::default() }
+    }
+
     pub fn fetch(client: &ApiClient, name: &str) -> Result<Node, Error> {
         let org = &client.config.organization_path();
         let path = format!("{}/nodes/{}", org, name);
@@ -62,13 +67,57 @@ impl Node {
     }
 }
 
+#[derive(Debug)]
+pub struct NodeList {
+    count: usize,
+    nodes: Vec<String>,
+    client: ApiClient,
+}
+
+impl NodeList {
+    pub fn new(client: &ApiClient) -> NodeList {
+        let org = &client.config.organization_path();
+        let path = format!("{}/nodes", org);
+        client.get(path.as_ref())
+              .and_then(|r| decode_list(r))
+              .and_then(|list| {
+                  Ok(NodeList {
+                      nodes: list,
+                      count: 0,
+                      client: client.clone(),
+                  })
+              })
+              .unwrap()
+    }
+}
+
+impl Iterator for NodeList {
+    type Item = Result<Node, Error>;
+
+    fn count(self) -> usize {
+        self.nodes.len()
+    }
+
+    fn next(&mut self) -> Option<Result<Node, Error>> {
+        if self.count < self.nodes.len() {
+            let ref name = self.nodes[self.count];
+            self.count += 1;
+            Some(Node::fetch(&self.client, name.as_ref()))
+        } else {
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Node;
+    use std::fs::File;
 
     #[test]
-    fn test_node_defaults() {
-        let n = Node::default();
-        assert_eq!(n.json_class, "Chef::Node")
+    fn test_node_from_file() {
+        let fh = File::open("fixtures/node.json").unwrap();
+        let node = Node::from_json(fh).unwrap();
+        assert_eq!(node.name.unwrap(), "test")
     }
 }
