@@ -32,6 +32,7 @@ pub enum Error {
     Json(SerdeError),
     Hyper(HyperError),
     Url(UrlError),
+    Generic,
 }
 
 impl From<HyperError> for Error {
