@@ -95,6 +95,10 @@ impl ApiClient {
         self.send_with_body(path, "", "get")
     }
 
+    pub fn delete(&self, path: &str) -> Result<Response, Error> {
+        self.send_with_body(path, "", "delete")
+    }
+
     pub fn put<B>(&self, path: &str, body: B) -> Result<Response, Error>
         where B: Serialize
     {

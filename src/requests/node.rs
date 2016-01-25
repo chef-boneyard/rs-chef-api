@@ -1,4 +1,4 @@
-use api_client::{ApiClient, Error, Response};
+use api_client::{ApiClient, Error};
 use serde_json;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -60,11 +60,24 @@ impl Node {
         client.put(path.as_ref(), self).and_then(|r| r.from_json::<Node>())
     }
 
+    pub fn delete(&self, client: &ApiClient) -> Result<Node, Error> {
+        let name = &self.name.clone().unwrap();
+        let org = &client.config.organization_path();
+        let path = format!("{}/nodes/{}", org, name);
+        client.delete(path.as_ref()).and_then(|r| r.from_json::<Node>())
+    }
+
     pub fn from_json<R>(r: R) -> Result<Node, Error>
         where R: Read
     {
         serde_json::from_reader::<R, Node>(r).map_err(|e| Error::Json(e))
     }
+}
+
+pub fn delete_node(client: &ApiClient, name: &str) -> Result<Node, Error> {
+    let org = &client.config.organization_path();
+    let path = format!("{}/nodes/{}", org, name);
+    client.delete(path.as_ref()).and_then(|r| r.from_json::<Node>())
 }
 
 #[derive(Debug)]
