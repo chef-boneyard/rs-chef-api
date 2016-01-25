@@ -2,6 +2,13 @@ use api_client::{Error, Response};
 use serde_json;
 use serde_json::Value;
 
+pub fn expand_string(val: &Option<String>) -> String {
+    match *val {
+        None => "".to_string(),
+        Some(ref x) => x.to_string(),
+    }
+}
+
 /// Remove duplicate and trailing slashes from a path
 pub fn squeeze_path(pth: String) -> String {
     let mut st = String::new();

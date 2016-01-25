@@ -8,7 +8,7 @@ use rustc_serialize::base64::{ToBase64, Config, Newline, CharacterSet};
 use std::ascii::AsciiExt;
 use std::fmt;
 use std::fs::File;
-use utils::squeeze_path;
+use utils::{squeeze_path, expand_string};
 
 #[derive(Clone)]
 pub struct Authentication {
@@ -166,13 +166,6 @@ impl Authentication {
             i += 1;
         }
         headers
-    }
-}
-
-fn expand_string(val: &Option<String>) -> String {
-    match *val {
-        None => "".to_string(),
-        Some(ref x) => x.to_string(),
     }
 }
 
