@@ -58,40 +58,48 @@ impl Authentication {
         }
     }
 
-    pub fn body(mut self, body: &str) -> Authentication {
-        let body = String::from(body);
-        self.body = Some(body);
+    pub fn body<S>(mut self, body: S) -> Authentication
+        where S: Into<String>
+    {
+        self.body = Some(body.into());
         self
     }
 
-    pub fn key(mut self, keypath: &str) -> Authentication {
-        let key = String::from(keypath);
-        self.keypath = Some(key);
+    pub fn key<S>(mut self, keypath: S) -> Authentication
+        where S: Into<String>
+    {
+        self.keypath = Some(keypath.into());
         self
     }
 
-    pub fn method(mut self, method: &str) -> Authentication {
-        let method = String::from(method.to_ascii_uppercase());
+    pub fn method<S>(mut self, method: S) -> Authentication
+        where S: Into<String>
+    {
+        let method = method.into().to_ascii_uppercase();
         self.method = Some(method);
         self
     }
 
-    pub fn path(mut self, path: &str) -> Authentication {
-        let path = String::from(path);
-        self.path = Some(squeeze_path(path));
+    pub fn path<S>(mut self, path: S) -> Authentication
+        where S: Into<String>
+    {
+        self.path = Some(squeeze_path(path.into()));
         self
     }
 
-    pub fn userid(mut self, id: &str) -> Authentication {
-        let userid = String::from(id);
+    pub fn userid<S>(mut self, id: S) -> Authentication
+        where S: Into<String>
+    {
+        let userid = id.into();
         self.userid = Some(userid.clone());
         self.headers.set(OpsUserId(userid));
         self
     }
 
-    pub fn version(mut self, version: &str) -> Authentication {
-        let version = String::from(version);
-        self.version = version;
+    pub fn version<S>(mut self, version: S) -> Authentication
+        where S: Into<String>
+    {
+        self.version = version.into();
         self
     }
 

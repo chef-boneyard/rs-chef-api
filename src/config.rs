@@ -53,16 +53,16 @@ impl Config {
         self
     }
 
-    pub fn user(mut self, user: &str) -> Config {
-        self.user = Some(String::from(user));
+    pub fn user<S>(mut self, user: S) -> Config
+        where S: Into<String>
+    {
+        self.user = Some(user.into());
         self
     }
 
     pub fn organization_path(&self) -> String {
         match self.endpoint {
-            Some(ref endpoint) => {
-                endpoint.serialize_path().unwrap()
-            }
+            Some(ref endpoint) => endpoint.serialize_path().unwrap(),
             None => panic!("Can't find an endpoint"),
         }
     }
@@ -78,7 +78,6 @@ impl Config {
             None => panic!("Can't find an endpoint"),
         }
     }
-
 }
 
 fn get_absolute_path(val: &str) -> String {

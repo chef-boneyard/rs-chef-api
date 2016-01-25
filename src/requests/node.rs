@@ -43,8 +43,10 @@ impl Read for Node {
 }
 
 impl Node {
-    pub fn new(name: &str) -> Node {
-        Node { name: Some(String::from(name)), ..Default::default() }
+    pub fn new<S>(name: S) -> Node
+        where S: Into<String>
+    {
+        Node { name: Some(name.into()), ..Default::default() }
     }
 
     pub fn fetch(client: &ApiClient, name: &str) -> Result<Node, Error> {
