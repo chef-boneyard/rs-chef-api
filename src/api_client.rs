@@ -1,4 +1,4 @@
-use authentication::Authentication;
+use authentication::auth11::Auth11;
 use config::Config;
 use http_headers::*;
 use hyper::client::Response as HyperResponse;
@@ -76,7 +76,6 @@ impl Response {
 }
 
 impl ApiClient {
-
     pub fn new(config: Config) -> ApiClient {
         ApiClient { config: config }
     }
@@ -107,17 +106,14 @@ impl ApiClient {
     }
 
     fn send_with_body(&self, path: &str, body: &str, method: &str) -> Result<Response, Error> {
-        let userid = &self.config.user.clone().unwrap();
+        let userid = self.config.user.clone().unwrap();
+        let keypath = self.config.keypath.clone().unwrap();
 
-        let auth = Authentication::new();
-        let auth = auth.path(path);
-        let auth = auth.key(self.config.keypath.clone().unwrap().as_ref());
-        let auth = auth.method(method);
-        let auth = auth.userid(userid.as_ref());
+        let auth = Auth11::new(path, keypath, method, userid);
 
         let url = try!(format!("{}{}", &self.config.url_base(), path).into_url());
 
-        let auth = auth.body(body.as_ref());
+        let auth = auth.body(body);
 
         let mth = match method {
             "put" => Method::Put,
@@ -151,5 +147,4 @@ impl ApiClient {
             Err(Error::UnsuccessfulResponse(resp))
         }
     }
-
 }
