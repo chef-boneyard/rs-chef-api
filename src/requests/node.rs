@@ -49,9 +49,9 @@ impl Node {
         Node { name: Some(name.into()), ..Default::default() }
     }
 
-    pub fn fetch(client: &ApiClient, name: &str) -> Result<Node, Error> {
+    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Node, Error> {
         let org = &client.config.organization_path();
-        let path = format!("{}/nodes/{}", org, name);
+        let path = format!("{}/nodes/{}", org, name.into());
         client.get(path.as_ref()).and_then(|r| r.from_json::<Node>())
     }
 
