@@ -98,6 +98,13 @@ impl ApiClient {
         self.send_with_body(path, "", "delete")
     }
 
+    pub fn post<B>(&self, path: &str, body: B) -> Result<Response, Error>
+        where B: Serialize
+    {
+        let body = try!(serde_json::to_string(&body).map_err(|e| Error::Json(e)));
+        self.send_with_body(path, body.as_ref(), "post")
+    }
+
     pub fn put<B>(&self, path: &str, body: B) -> Result<Response, Error>
         where B: Serialize
     {
