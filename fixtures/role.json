@@ -1,0 +1,17 @@
+{
+  "name": "test",
+  "description": "The Test Role",
+  "run_list": [
+    "recipe[test::default]", "recipe[my:dog]"
+  ],
+  "default_attributes": {
+    "ssh_key": "test",
+    "deeper": {
+      "deep_key": [ "a", "b", "c" ]
+    },
+    "tags": [
+      "foo",
+      "bar"
+    ]
+  }
+}
