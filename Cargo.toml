@@ -8,7 +8,7 @@ time = "0.1"
 log = "0.3"
 rustc-serialize = "0.3"
 clippy = {version = "0.0.21", optional = true}
-hyper = {version = "0.6", features = [ "serde-serialization" ] }
+hyper = {version = "0.7", features = [ "serde-serialization" ] }
 url = "*"
 chrono = "0.2"
 openssl = "0.7"
