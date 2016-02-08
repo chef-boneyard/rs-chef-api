@@ -1,10 +1,8 @@
 use api_client::{ApiClient, Error};
 use serde_json;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::io;
 use std::io::{Cursor, Read, ErrorKind};
-use utils::decode_list;
 
 chef_json_type!(DataBagJsonClass, "Chef::DataBag");
 chef_json_type!(DataBagChefType, "data_bag");
@@ -55,7 +53,7 @@ impl DataBag {
     pub fn from_json<R>(r: R) -> Result<DataBag, Error>
         where R: Read
     {
-        serde_json::from_reader::<R, DataBag>(r).map_err(|e| Error::Json(e))
+        serde_json::from_reader::<R, DataBag>(r).map_err(Error::Json)
     }
 }
 

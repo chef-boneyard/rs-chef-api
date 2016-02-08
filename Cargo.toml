@@ -7,7 +7,7 @@ authors = ["Thom May <thom@chef.io>"]
 time = "0.1"
 log = "0.3"
 rustc-serialize = "0.3"
-clippy = {version = "0.0.21", optional = true}
+clippy = {version = "*", optional = true}
 hyper = {version = "0.7", features = [ "serde-serialization" ] }
 url = "*"
 chrono = "0.2"

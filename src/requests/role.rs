@@ -68,7 +68,7 @@ impl Role {
     pub fn from_json<R>(r: R) -> Result<Role, Error>
         where R: Read
     {
-        serde_json::from_reader::<R, Role>(r).map_err(|e| Error::Json(e))
+        serde_json::from_reader::<R, Role>(r).map_err(Error::Json)
     }
 }
 
@@ -90,7 +90,7 @@ impl RoleList {
         let org = &client.config.organization_path();
         let path = format!("{}/roles", org);
         client.get(path.as_ref())
-              .and_then(|r| decode_list(r))
+              .and_then(decode_list)
               .and_then(|list| {
                   Ok(RoleList {
                       roles: list,
@@ -111,7 +111,7 @@ impl Iterator for RoleList {
 
     fn next(&mut self) -> Option<Result<Role, Error>> {
         if self.count < self.roles.len() {
-            let ref name = self.roles[self.count];
+            let name = &self.roles[self.count];
             self.count += 1;
             Some(Role::fetch(&self.client, name.as_ref()))
         } else {

@@ -4,8 +4,8 @@ use serde_json::Value;
 
 pub fn expand_string(val: &Option<String>) -> String {
     match *val {
-        None => "".to_string(),
-        Some(ref x) => x.to_string(),
+        None => "".to_owned(),
+        Some(ref x) => x.to_owned(),
     }
 }
 
@@ -16,7 +16,7 @@ pub fn squeeze_path(pth: String) -> String {
         st.push('/');
         st.push_str(p)
     }
-    if st.len() == 0 {
+    if st.is_empty() {
         String::from("/")
     } else {
         st

@@ -72,7 +72,7 @@ impl Node {
     pub fn from_json<R>(r: R) -> Result<Node, Error>
         where R: Read
     {
-        serde_json::from_reader::<R, Node>(r).map_err(|e| Error::Json(e))
+        serde_json::from_reader::<R, Node>(r).map_err(Error::Json)
     }
 }
 
@@ -94,7 +94,7 @@ impl NodeList {
         let org = &client.config.organization_path();
         let path = format!("{}/nodes", org);
         client.get(path.as_ref())
-              .and_then(|r| decode_list(r))
+              .and_then(decode_list)
               .and_then(|list| {
                   Ok(NodeList {
                       nodes: list,
@@ -115,7 +115,7 @@ impl Iterator for NodeList {
 
     fn next(&mut self) -> Option<Result<Node, Error>> {
         if self.count < self.nodes.len() {
-            let ref name = self.nodes[self.count];
+            let name = &self.nodes[self.count];
             self.count += 1;
             Some(Node::fetch(&self.client, name.as_ref()))
         } else {

@@ -69,7 +69,7 @@ impl Environment {
     pub fn from_json<R>(r: R) -> Result<Environment, Error>
         where R: Read
     {
-        serde_json::from_reader::<R, Environment>(r).map_err(|e| Error::Json(e))
+        serde_json::from_reader::<R, Environment>(r).map_err(Error::Json)
     }
 }
 
@@ -91,7 +91,7 @@ impl EnvironmentList {
         let org = &client.config.organization_path();
         let path = format!("{}/environments", org);
         client.get(path.as_ref())
-              .and_then(|r| decode_list(r))
+              .and_then(decode_list)
               .and_then(|list| {
                   Ok(EnvironmentList {
                       environments: list,
@@ -112,7 +112,7 @@ impl Iterator for EnvironmentList {
 
     fn next(&mut self) -> Option<Result<Environment, Error>> {
         if self.count < self.environments.len() {
-            let ref name = self.environments[self.count];
+            let name = &self.environments[self.count];
             self.count += 1;
             Some(Environment::fetch(&self.client, name.as_ref()))
         } else {
