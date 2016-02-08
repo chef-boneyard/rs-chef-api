@@ -1,4 +1,4 @@
-use authentication::auth11::Auth11;
+use authentication::Authentication;
 use config::Config;
 use http_headers::*;
 use hyper::client::Response as HyperResponse;
@@ -71,7 +71,7 @@ impl Response {
     }
 
     pub fn from_json<T: Deserialize>(&self) -> Result<T, Error> {
-        serde_json::from_str(&*self.body).map_err(|e| Error::Json(e))
+        serde_json::from_str(&*self.body).map_err(Error::Json)
     }
 }
 
@@ -101,22 +101,23 @@ impl ApiClient {
     pub fn post<B>(&self, path: &str, body: B) -> Result<Response, Error>
         where B: Serialize
     {
-        let body = try!(serde_json::to_string(&body).map_err(|e| Error::Json(e)));
+        let body = try!(serde_json::to_string(&body).map_err(Error::Json));
         self.send_with_body(path, body.as_ref(), "post")
     }
 
     pub fn put<B>(&self, path: &str, body: B) -> Result<Response, Error>
         where B: Serialize
     {
-        let body = try!(serde_json::to_string(&body).map_err(|e| Error::Json(e)));
+        let body = try!(serde_json::to_string(&body).map_err(Error::Json));
         self.send_with_body(path, body.as_ref(), "put")
     }
 
     fn send_with_body(&self, path: &str, body: &str, method: &str) -> Result<Response, Error> {
         let userid = self.config.user.clone().unwrap();
         let keypath = self.config.keypath.clone().unwrap();
+        let sign_ver = self.config.sign_ver.clone();
 
-        let auth = Auth11::new(path, keypath, method, userid);
+        let auth = Authentication::new(path, keypath, method, userid, sign_ver);
 
         let url = try!(format!("{}{}", &self.config.url_base(), path).into_url());
 
@@ -134,7 +135,7 @@ impl ApiClient {
         let client = client.request(mth, url);
         let client = client.body(body.as_bytes());
 
-        let headers = auth.as_headers();
+        let headers = auth.headers();
         let mut headers = headers.clone();
 
         let json = Mime(TopLevel::Application, SubLevel::Json, vec![]);

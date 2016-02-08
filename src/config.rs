@@ -10,6 +10,7 @@ pub struct Config {
     pub endpoint: Option<Url>,
     pub user: Option<String>,
     pub keypath: Option<String>,
+    pub sign_ver: String,
 }
 
 impl Config {
@@ -18,6 +19,7 @@ impl Config {
             endpoint: None,
             user: None,
             keypath: None,
+            sign_ver: String::from("1.1"),
         }
     }
 
@@ -32,7 +34,7 @@ impl Config {
                 let cfg = cfg.key(obj.get("client_key").unwrap().as_string().unwrap());
                 let cfg = cfg.endpoint(obj.get("chef_server_url").unwrap().as_string().unwrap());
                 let cfg = cfg.user(obj.get("node_name").unwrap().as_string().unwrap());
-                cfg
+                cfg.sign_ver(obj.get("sign_ver").unwrap().as_string().unwrap())
             }
             Err(_) => panic!("Couldn't open config file"),
         }
@@ -57,6 +59,13 @@ impl Config {
         where S: Into<String>
     {
         self.user = Some(user.into());
+        self
+    }
+
+    pub fn sign_ver<S>(mut self, sign_ver: S) -> Config
+        where S: Into<String>
+    {
+        self.sign_ver = sign_ver.into();
         self
     }
 
@@ -86,7 +95,7 @@ fn get_absolute_path(val: &str) -> String {
         p = env::current_dir().unwrap();
         p.push(val);
     }
-    p.to_str().unwrap().to_string()
+    p.to_str().unwrap().to_owned()
 }
 
 #[cfg(test)]
@@ -122,4 +131,9 @@ mod tests {
         assert_eq!(cfg.url_base(), "https://localhost:443")
     }
 
+    #[test]
+    fn test_default_sign_ver() {
+        let cfg = Config::new();
+        assert_eq!(cfg.sign_ver, "1.1")
+    }
 }

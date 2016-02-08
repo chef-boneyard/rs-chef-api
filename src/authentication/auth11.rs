@@ -14,7 +14,7 @@ use authentication::BASE64_AUTH;
 pub struct Auth11 {
     body: Option<String>,
     date: String,
-    pub headers: Headers,
+    headers: Headers,
     keypath: String,
     method: String,
     path: String,
@@ -35,38 +35,25 @@ impl fmt::Debug for Auth11 {
 }
 
 impl Auth11 {
-    pub fn new<P, K, M, U>(path: P, key: K, method: M, userid: U) -> Auth11
-        where P: Into<String>,
-              K: Into<String>,
-              M: Into<String>,
-              U: Into<String>
-    {
+    pub fn new(path: &str, key: &str, method: &str, userid: &str, body: Option<String>) -> Auth11 {
         let dt = UTC::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
-        let userid = userid.into();
-
+        let userid = userid.to_owned();
         let mut headers = Headers::new();
         headers.set(OpsSign(String::from("algorithm=sha1;version=1.1")));
         headers.set(OpsTimestamp(dt.clone()));
         headers.set(OpsUserId(userid.clone()));
 
         Auth11 {
-            body: None,
+            body: body,
             date: dt,
             headers: headers,
-            keypath: key.into(),
-            method: method.into(),
-            path: squeeze_path(path.into()),
+            keypath: key.to_owned(),
+            method: method.to_owned(),
+            path: squeeze_path(path.to_owned()),
             userid: userid,
             version: String::from("1.1"),
         }
-    }
-
-    pub fn body<S>(mut self, body: S) -> Auth11
-        where S: Into<String>
-    {
-        self.body = Some(body.into());
-        self
     }
 
     fn hashed_path(&self) -> String {
@@ -114,7 +101,7 @@ impl Auth11 {
         }
     }
 
-    pub fn as_headers(self) -> Headers {
+    pub fn headers(self) -> Headers {
         let fin = self.set_content_hash();
         let enc = fin.encrypted_request();
         let mut headers = fin.headers;
@@ -144,13 +131,13 @@ mod tests {
 
     #[test]
     fn test_new_authentication() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER);
+        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, None);
         assert_eq!(auth.body, None)
     }
 
     #[test]
     fn test_userid() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER);
+        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, None);
         assert_eq!(auth.userid, "spec-user");
         assert_eq!(auth.headers.get::<OpsUserId>().unwrap().to_string(),
                    "spec-user")
@@ -158,13 +145,13 @@ mod tests {
 
     #[test]
     fn test_method() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER);
+        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, None);
         assert_eq!(auth.method, "GET")
     }
 
     #[test]
     fn test_canonical_user_id_v11() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER);
+        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, None);
         assert_eq!(auth.canonical_user_id(), "EAF7Wv/hbAudWV5ZkwKz40Z/lO0=")
     }
 
@@ -209,8 +196,8 @@ mod tests {
 
     #[test]
     fn test_headers() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER);
-        let headers = auth.as_headers();
+        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, None);
+        let headers = auth.headers();
 
         let _ = headers.get_raw("x-ops-authorization-1").unwrap();
     }
