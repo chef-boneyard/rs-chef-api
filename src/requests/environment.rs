@@ -23,7 +23,7 @@ pub struct Environment {
     pub cookbook_versions: HashMap<String, Value>,
     #[serde(default)]
     pub default_attributes: HashMap<String, Value>,
-    #[serde(default,rename(json="override"))]
+    #[serde(default,rename="override")]
     pub override_attributes: HashMap<String, Value>,
 }
 

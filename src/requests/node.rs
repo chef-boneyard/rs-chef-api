@@ -27,7 +27,7 @@ pub struct Node {
     pub automatic: HashMap<String, Value>,
     #[serde(default)]
     pub default: HashMap<String, Value>,
-    #[serde(default,rename(json="override"))]
+    #[serde(default,rename="override")]
     pub overrides: HashMap<String, Value>,
 }
 

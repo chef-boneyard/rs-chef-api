@@ -1,6 +1,5 @@
 use api_client::{ApiClient, Error};
 use serde_json;
-use serde_json::Value;
 use std::io;
 use std::io::{Cursor, Read, ErrorKind};
 
