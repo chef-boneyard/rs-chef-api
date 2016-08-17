@@ -12,6 +12,9 @@
 //         unstable_features,
 //         unused_import_braces, unused_qualifications)]
 
+#[macro_use]
+extern crate error_chain;
+
 extern crate openssl;
 extern crate rustc_serialize;
 extern crate chrono;
@@ -26,6 +29,8 @@ extern crate log;
 extern crate serde;
 extern crate serde_json;
 
+pub use errors::*;
+pub mod errors;
 pub mod authentication;
 mod http_headers;
 mod utils;

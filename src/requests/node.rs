@@ -1,10 +1,12 @@
-use api_client::{ApiClient, Error};
+use api_client::ApiClient;
 use serde_json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io;
-use std::io::{Cursor, Read, ErrorKind};
+use std::io::{Cursor, Read};
+use std::io::ErrorKind as IoErrorKind;
 use utils::decode_list;
+use errors::*;
 
 chef_json_type!(NodeJsonClass, "Chef::Node");
 chef_json_type!(NodeChefType, "node");
@@ -37,7 +39,7 @@ impl Read for Node {
             let mut node = Cursor::new(node.as_ref() as &[u8]);
             Read::read(&mut node, buf)
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData, "Failed to convert node to JSON"))
+            Err(io::Error::new(IoErrorKind::InvalidData, "Failed to convert node to JSON"))
         }
     }
 }
@@ -49,34 +51,34 @@ impl Node {
         Node { name: Some(name.into()), ..Default::default() }
     }
 
-    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Node, Error> {
+    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Node> {
         let org = &client.config.organization_path();
         let path = format!("{}/nodes/{}", org, name.into());
         client.get(path.as_ref()).and_then(|r| r.from_json::<Node>())
     }
 
-    pub fn save(&self, client: &ApiClient) -> Result<Node, Error> {
+    pub fn save(&self, client: &ApiClient) -> Result<Node> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/nodes/{}", org, name);
         client.put(path.as_ref(), self).and_then(|r| r.from_json::<Node>())
     }
 
-    pub fn delete(&self, client: &ApiClient) -> Result<Node, Error> {
+    pub fn delete(&self, client: &ApiClient) -> Result<Node> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/nodes/{}", org, name);
         client.delete(path.as_ref()).and_then(|r| r.from_json::<Node>())
     }
 
-    pub fn from_json<R>(r: R) -> Result<Node, Error>
+    pub fn from_json<R>(r: R) -> Result<Node>
         where R: Read
     {
-        serde_json::from_reader::<R, Node>(r).map_err(Error::Json)
+        Ok(try!(serde_json::from_reader::<R, Node>(r)))
     }
 }
 
-pub fn delete_node(client: &ApiClient, name: &str) -> Result<Node, Error> {
+pub fn delete_node(client: &ApiClient, name: &str) -> Result<Node> {
     let org = &client.config.organization_path();
     let path = format!("{}/nodes/{}", org, name);
     client.delete(path.as_ref()).and_then(|r| r.from_json::<Node>())
@@ -94,30 +96,30 @@ impl NodeList {
         let org = &client.config.organization_path();
         let path = format!("{}/nodes", org);
         client.get(path.as_ref())
-              .and_then(decode_list)
-              .and_then(|list| {
-                  Ok(NodeList {
-                      nodes: list,
-                      count: 0,
-                      client: client.clone(),
-                  })
-              })
-              .unwrap()
+            .and_then(decode_list)
+            .and_then(|list| {
+                Ok(NodeList {
+                    nodes: list,
+                    count: 0,
+                    client: client.clone(),
+                })
+            })
+            .unwrap()
     }
 }
 
 impl Iterator for NodeList {
-    type Item = Result<Node, Error>;
+    type Item = Result<Node>;
 
     fn count(self) -> usize {
         self.nodes.len()
     }
 
-    fn next(&mut self) -> Option<Result<Node, Error>> {
+    fn next(&mut self) -> Option<Result<Node>> {
         if self.count < self.nodes.len() {
-            let name = &self.nodes[self.count];
+            let name = self.nodes[self.count];
             self.count += 1;
-            Some(Node::fetch(&self.client, name.as_ref()))
+            Some(Node::fetch(&self.client, name))
         } else {
             None
         }

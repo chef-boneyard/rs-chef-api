@@ -1,9 +1,10 @@
-use hyper::Url;
+use url::Url;
 use serde_json;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::env;
 use std::fs::File;
+use errors::*;
 
 #[derive(Clone,Debug)]
 pub struct Config {
@@ -19,59 +20,42 @@ impl Config {
             endpoint: None,
             user: None,
             keypath: None,
-            sign_ver: String::from("1.1"),
+            sign_ver: String::from("1.3"),
         }
     }
 
     /// Load a configuration file from JSON
-    pub fn from_json(path: &str) -> Config {
+    pub fn from_json(path: &str) -> Result<Config> {
         let path = get_absolute_path(path);
-        let cfg = Config::new();
         match File::open(path) {
             Ok(fh) => {
-                let val: Value = serde_json::from_reader(fh).unwrap();
+                let val: Value = try!(serde_json::from_reader(fh));
                 let obj = val.as_object().unwrap();
-                let cfg = cfg.key(obj.get("client_key").unwrap().as_string().unwrap());
-                let cfg = cfg.endpoint(obj.get("chef_server_url").unwrap().as_string().unwrap());
-                let cfg = cfg.user(obj.get("node_name").unwrap().as_string().unwrap());
-                cfg.sign_ver(obj.get("sign_ver").unwrap().as_string().unwrap())
+
+                let key: String = try!(serde_json::from_value(*obj.get("client_key").unwrap()));
+                let key = get_absolute_path(key.as_ref());
+                let endpoint: String = try!(serde_json::from_value(*obj.get("chef_server_url")
+                    .unwrap()));
+                let user: String = try!(serde_json::from_value(*obj.get("node_name").unwrap()));
+                let sign_ver: String = serde_json::from_value(*obj.get("node_name").unwrap())
+                    .unwrap_or("1.3".into());
+
+                let endpoint = try!(Url::parse(endpoint.as_ref()));
+
+                Ok(Config {
+                    endpoint: Some(endpoint),
+                    user: Some(user),
+                    keypath: Some(key),
+                    sign_ver: sign_ver,
+                })
             }
             Err(_) => panic!("Couldn't open config file"),
         }
     }
 
-    pub fn key(mut self, path: &str) -> Config {
-        let keypath = get_absolute_path(path);
-        self.keypath = Some(keypath);
-        self
-    }
-
-    pub fn endpoint(mut self, endpoint: &str) -> Config {
-        let url = match Url::parse(endpoint) {
-            Ok(url) => url,
-            Err(_) => panic!("Please provide a valid URL"),
-        };
-        self.endpoint = Some(url);
-        self
-    }
-
-    pub fn user<S>(mut self, user: S) -> Config
-        where S: Into<String>
-    {
-        self.user = Some(user.into());
-        self
-    }
-
-    pub fn sign_ver<S>(mut self, sign_ver: S) -> Config
-        where S: Into<String>
-    {
-        self.sign_ver = sign_ver.into();
-        self
-    }
-
     pub fn organization_path(&self) -> String {
         match self.endpoint {
-            Some(ref endpoint) => endpoint.serialize_path().unwrap(),
+            Some(ref endpoint) => endpoint.path().into(),
             None => panic!("Can't find an endpoint"),
         }
     }
@@ -79,9 +63,9 @@ impl Config {
     pub fn url_base(&self) -> String {
         match self.endpoint {
             Some(ref endpoint) => {
-                let host = &endpoint.serialize_host().unwrap();
-                let port = &endpoint.port_or_default().unwrap();
-                let scheme = &endpoint.scheme;
+                let host = &endpoint.host_str().unwrap();
+                let port = &endpoint.port_or_known_default().unwrap();
+                let scheme = &endpoint.scheme();
                 format!("{}://{}:{}", scheme, host, port)
             }
             None => panic!("Can't find an endpoint"),

@@ -1,4 +1,5 @@
-use api_client::{Error, Response};
+use api_client::Response;
+use errors::*;
 use serde_json;
 use serde_json::Value;
 
@@ -16,19 +17,15 @@ pub fn squeeze_path(pth: String) -> String {
         st.push('/');
         st.push_str(p)
     }
-    if st.is_empty() {
-        String::from("/")
-    } else {
-        st
-    }
+    if st.is_empty() { String::from("/") } else { st }
 }
 
 /// The Chef Server returns lists of objects in the form
 /// [ "name", "https://chef.local/type/name"]
-/// In general, we don't care about the URL, so just give return
+/// In general, we don't care about the URL, so just return
 /// a list of the names
-pub fn decode_list(r: Response) -> Result<Vec<String>, Error> {
-    let data: Result<Value, _> = serde_json::from_str(&*r.body);
+pub fn decode_list(r: Response) -> Result<Vec<String>> {
+    let data: Result<Value> = serde_json::from_str(&*r.body).map_err(|err| err.into());
     match data {
         Ok(data) => {
             if let Some(obj) = data.as_object() {
@@ -38,10 +35,10 @@ pub fn decode_list(r: Response) -> Result<Vec<String>, Error> {
                 }
                 Ok(resp)
             } else {
-                Err(Error::Generic)
+                Err(ErrorKind::ListError.into())
             }
         }
-        Err(e) => Err(Error::Json(e)),
+        Err(e) => Err(e.into()),
     }
 }
 

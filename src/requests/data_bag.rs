@@ -1,7 +1,9 @@
-use api_client::{ApiClient, Error};
+use api_client::ApiClient;
 use serde_json;
 use std::io;
-use std::io::{Cursor, Read, ErrorKind};
+use std::io::{Cursor, Read};
+use std::io::ErrorKind as IoErrorKind;
+use errors::*;
 
 chef_json_type!(DataBagJsonClass, "Chef::DataBag");
 chef_json_type!(DataBagChefType, "data_bag");
@@ -24,8 +26,8 @@ impl Read for DataBag {
             let mut data_bag = Cursor::new(data_bag.as_ref() as &[u8]);
             Read::read(&mut data_bag, buf)
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData,
-                               "Failed to convert environment to JSON"))
+            Err(io::Error::new(IoErrorKind::InvalidData,
+                               "Failed to convert data bag to JSON"))
         }
     }
 }
@@ -37,22 +39,22 @@ impl DataBag {
         DataBag { name: Some(name.into()), ..Default::default() }
     }
 
-    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<DataBag, Error> {
+    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<DataBag> {
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}", org, name.into());
         client.get(path.as_ref()).and_then(|r| r.from_json::<DataBag>())
     }
 
-    pub fn save(&self, client: &ApiClient) -> Result<DataBag, Error> {
+    pub fn save(&self, client: &ApiClient) -> Result<DataBag> {
         let org = &client.config.organization_path();
         let path = format!("{}/data", org);
         client.post(path.as_ref(), self).and_then(|r| r.from_json::<DataBag>())
     }
 
-    pub fn from_json<R>(r: R) -> Result<DataBag, Error>
+    pub fn from_json<R>(r: R) -> Result<DataBag>
         where R: Read
     {
-        serde_json::from_reader::<R, DataBag>(r).map_err(Error::Json)
+        Ok(try!(serde_json::from_reader::<R, DataBag>(r)))
     }
 }
 

@@ -7,50 +7,15 @@ use hyper::header::{Accept, ContentType, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::client::IntoUrl;
-use std::io::Error as IoError;
 use std::io::Read;
 use serde_json;
 use serde::ser::Serialize;
 use serde::de::Deserialize;
-
-#[doc(no_inline)]
-pub use serde_json::error::Error as SerdeError;
-
-#[doc(no_inline)]
-pub use hyper::error::Error as HyperError;
-
-pub use url::ParseError as UrlError;
+use errors::*;
 
 #[derive(Debug,Clone)]
 pub struct ApiClient {
     pub config: Config,
-}
-
-#[derive(Debug)]
-pub enum Error {
-    UnsuccessfulResponse(Response),
-    Json(SerdeError),
-    Hyper(HyperError),
-    Url(UrlError),
-    Generic,
-}
-
-impl From<HyperError> for Error {
-    fn from(h: HyperError) -> Error {
-        Error::Hyper(h)
-    }
-}
-
-impl From<IoError> for Error {
-    fn from(i: IoError) -> Error {
-        Error::Hyper(HyperError::Io(i))
-    }
-}
-
-impl From<UrlError> for Error {
-    fn from(u: UrlError) -> Error {
-        Error::Url(u)
-    }
 }
 
 #[derive(Debug)]
@@ -60,9 +25,9 @@ pub struct Response {
 }
 
 impl Response {
-    fn from_hyper_response(mut hyper_response: HyperResponse) -> Result<Response, IoError> {
+    fn from_hyper_response(mut hyper_response: HyperResponse) -> Result<Response> {
         let mut body = String::new();
-        hyper_response.read_to_string(&mut body).map(|_| {
+        hyper_response.read_to_string(&mut body).map_err(|e| e.into()).map(|_| {
             Response {
                 hyper_response: hyper_response,
                 body: body,
@@ -70,8 +35,8 @@ impl Response {
         })
     }
 
-    pub fn from_json<T: Deserialize>(&self) -> Result<T, Error> {
-        serde_json::from_str(&*self.body).map_err(Error::Json)
+    pub fn from_json<T: Deserialize>(&self) -> Result<T> {
+        serde_json::from_str(&*self.body).chain_err(|| "Failed to decode json")
     }
 }
 
@@ -81,8 +46,9 @@ impl ApiClient {
     }
 
     pub fn from_json_config(pth: &str) -> ApiClient {
-        let cfg = Config::from_json(pth);
-        ApiClient::new(cfg)
+        Config::from_json(pth)
+            .map(|cfg| ApiClient::new(cfg))
+            .unwrap()
     }
 
     pub fn config(mut self, config: Config) -> ApiClient {
@@ -90,29 +56,29 @@ impl ApiClient {
         self
     }
 
-    pub fn get(&self, path: &str) -> Result<Response, Error> {
+    pub fn get(&self, path: &str) -> Result<Response> {
         self.send_with_body(path, "", "get")
     }
 
-    pub fn delete(&self, path: &str) -> Result<Response, Error> {
+    pub fn delete(&self, path: &str) -> Result<Response> {
         self.send_with_body(path, "", "delete")
     }
 
-    pub fn post<B>(&self, path: &str, body: B) -> Result<Response, Error>
+    pub fn post<B>(&self, path: &str, body: B) -> Result<Response>
         where B: Serialize
     {
-        let body = try!(serde_json::to_string(&body).map_err(Error::Json));
+        let body = try!(serde_json::to_string(&body));
         self.send_with_body(path, body.as_ref(), "post")
     }
 
-    pub fn put<B>(&self, path: &str, body: B) -> Result<Response, Error>
+    pub fn put<B>(&self, path: &str, body: B) -> Result<Response>
         where B: Serialize
     {
-        let body = try!(serde_json::to_string(&body).map_err(Error::Json));
+        let body = try!(serde_json::to_string(&body));
         self.send_with_body(path, body.as_ref(), "put")
     }
 
-    fn send_with_body(&self, path: &str, body: &str, method: &str) -> Result<Response, Error> {
+    fn send_with_body(&self, path: &str, body: &str, method: &str) -> Result<Response> {
         let userid = self.config.user.clone().unwrap();
         let keypath = self.config.keypath.clone().unwrap();
         let sign_ver = self.config.sign_ver.clone();
@@ -152,7 +118,7 @@ impl ApiClient {
         if resp.hyper_response.status.is_success() {
             Ok(resp)
         } else {
-            Err(Error::UnsuccessfulResponse(resp))
+            Err(ErrorKind::UnsuccessfulResponse(resp).into())
         }
     }
 }

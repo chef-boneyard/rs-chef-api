@@ -3,8 +3,8 @@ use hyper::header::Headers;
 use utils::squeeze_path;
 use std::ascii::AsciiExt;
 
-pub mod auth11;
-use authentication::auth11::Auth11;
+pub mod auth13;
+use authentication::auth13::Auth13;
 
 pub static BASE64_AUTH: Config = Config {
     char_set: CharacterSet::Standard,
@@ -15,6 +15,7 @@ pub static BASE64_AUTH: Config = Config {
 
 #[derive(Clone)]
 pub struct Authentication {
+    api_version: Option<String>,
     body: Option<String>,
     keypath: String,
     method: String,
@@ -32,6 +33,7 @@ impl Authentication {
               V: Into<String>
               {
                   Authentication {
+                      api_version: None,
                       body: None,
                       keypath: key.into(),
                       method: method.into().to_ascii_uppercase(),
@@ -42,6 +44,13 @@ impl Authentication {
 
               }
 
+    pub fn api_version<S>(mut self, api_version: S) -> Authentication
+        where S: Into<String>
+        {
+            self.api_version = Some(api_version.into());
+            self
+        }
+
     pub fn body<S>(mut self, body: S) -> Authentication
         where S: Into<String>
         {
@@ -50,7 +59,13 @@ impl Authentication {
         }
 
     pub fn headers(self) -> Headers {
-        Auth11::new(&self.path, &self.keypath, &self.method, &self.userid, self.body).headers()
+        Auth13::new(&self.path,
+                    &self.keypath,
+                    &self.method,
+                    &self.userid,
+                    &self.api_version.unwrap(),
+                    self.body)
+            .headers()
     }
 }
 

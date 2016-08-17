@@ -1,10 +1,12 @@
-use api_client::{ApiClient, Error};
+use api_client::ApiClient;
 use serde_json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io;
-use std::io::{Cursor, Read, ErrorKind};
+use std::io::{Cursor, Read};
+use std::io::ErrorKind as IoErrorKind;
 use utils::decode_list;
+use errors::*;
 
 chef_json_type!(RoleJsonClass, "Chef::Role");
 chef_json_type!(RoleChefType, "role");
@@ -33,7 +35,7 @@ impl Read for Role {
             let mut role = Cursor::new(role.as_ref() as &[u8]);
             Read::read(&mut role, buf)
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData, "Failed to convert role to JSON"))
+            Err(io::Error::new(IoErrorKind::InvalidData, "Failed to convert role to JSON"))
         }
     }
 }
@@ -45,34 +47,34 @@ impl Role {
         Role { name: Some(name.into()), ..Default::default() }
     }
 
-    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Role, Error> {
+    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Role> {
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name.into());
         client.get(path.as_ref()).and_then(|r| r.from_json::<Role>())
     }
 
-    pub fn save(&self, client: &ApiClient) -> Result<Role, Error> {
+    pub fn save(&self, client: &ApiClient) -> Result<Role> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name);
         client.put(path.as_ref(), self).and_then(|r| r.from_json::<Role>())
     }
 
-    pub fn delete(&self, client: &ApiClient) -> Result<Role, Error> {
+    pub fn delete(&self, client: &ApiClient) -> Result<Role> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name);
         client.delete(path.as_ref()).and_then(|r| r.from_json::<Role>())
     }
 
-    pub fn from_json<R>(r: R) -> Result<Role, Error>
+    pub fn from_json<R>(r: R) -> Result<Role>
         where R: Read
     {
-        serde_json::from_reader::<R, Role>(r).map_err(Error::Json)
+        Ok(try!(serde_json::from_reader::<R, Role>(r)))
     }
 }
 
-pub fn delete_role(client: &ApiClient, name: &str) -> Result<Role, Error> {
+pub fn delete_role(client: &ApiClient, name: &str) -> Result<Role> {
     let org = &client.config.organization_path();
     let path = format!("{}/roles/{}", org, name);
     client.delete(path.as_ref()).and_then(|r| r.from_json::<Role>())
@@ -90,30 +92,30 @@ impl RoleList {
         let org = &client.config.organization_path();
         let path = format!("{}/roles", org);
         client.get(path.as_ref())
-              .and_then(decode_list)
-              .and_then(|list| {
-                  Ok(RoleList {
-                      roles: list,
-                      count: 0,
-                      client: client.clone(),
-                  })
-              })
-              .unwrap()
+            .and_then(decode_list)
+            .and_then(|list| {
+                Ok(RoleList {
+                    roles: list,
+                    count: 0,
+                    client: client.clone(),
+                })
+            })
+            .unwrap()
     }
 }
 
 impl Iterator for RoleList {
-    type Item = Result<Role, Error>;
+    type Item = Result<Role>;
 
     fn count(self) -> usize {
         self.roles.len()
     }
 
-    fn next(&mut self) -> Option<Result<Role, Error>> {
+    fn next(&mut self) -> Option<Result<Role>> {
         if self.count < self.roles.len() {
-            let name = &self.roles[self.count];
+            let name = self.roles[self.count];
             self.count += 1;
-            Some(Role::fetch(&self.client, name.as_ref()))
+            Some(Role::fetch(&self.client, name))
         } else {
             None
         }

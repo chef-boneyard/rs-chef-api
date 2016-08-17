@@ -4,19 +4,25 @@ version = "0.1.0"
 authors = ["Thom May <thom@chef.io>"]
 
 [dependencies]
-time = "0.1"
-log = "0.3"
-rustc-serialize = "0.3"
+time = "*"
+log = "*"
+rustc-serialize = "*"
 clippy = {version = "*", optional = true}
-hyper = {version = "0.7", features = [ "serde-serialization" ] }
+hyper = {version = "0.9", features = [ "serde-serialization" ] }
 url = "*"
-chrono = "0.2"
-openssl = "0.7"
+chrono = "*"
+openssl = "*"
 env_logger = "0.3"
 serde = "*"
 serde_macros = "*"
 serde_json = "*"
+error-chain = "0.4.0"
 
 [features]
 default = []
 dev = ["clippy"]
+
+[[bin]]
+name = "chef_api"
+doc = false
+test = false

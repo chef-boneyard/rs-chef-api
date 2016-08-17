@@ -20,4 +20,3 @@ pub mod environment;
 pub mod role;
 pub mod data_bag;
 pub mod data_bag_item;
-
