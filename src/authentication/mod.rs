@@ -77,16 +77,13 @@ mod tests {
     const PATH: &'static str = "/organizations/clownco";
     const BODY: &'static str = "Spec Body";
     const USER: &'static str = "spec-user";
-    const DT: &'static str = "2009-01-01T12:00:00Z";
 
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
     #[test]
     fn test_auth_return() {
-        let auth = Authentication::new(PATH, PRIVATE_KEY, "POST", USER, "1.1");
-        let headers = auth.body(BODY).headers();
-        let first = "UfZD9dRz6rFu6LbP5Mo1oNHcWYxpNIcUfFCffJS1FQa0GtfU/vkt3/O5HuCM";
-        let out = headers.get_raw("x-ops-authorization-1").unwrap();
-        assert_eq!(first.to_owned(), String::from_utf8(out[0].clone()).unwrap())
+        let auth = Authentication::new(PATH, PRIVATE_KEY, "GET", USER, "1.3");
+        let headers = auth.body(BODY).api_version("1").headers();
+        assert!(headers.get_raw("x-ops-authorization-1").is_some())
     }
 }
