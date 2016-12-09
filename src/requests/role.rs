@@ -112,10 +112,8 @@ impl Iterator for RoleList {
     }
 
     fn next(&mut self) -> Option<Result<Role>> {
-        if self.count < self.roles.len() {
-            let name = self.roles[self.count];
-            self.count += 1;
-            Some(Role::fetch(&self.client, name))
+        if self.roles.len() >= 1 {
+            Some(Role::fetch(&self.client, self.roles.remove(0)))
         } else {
             None
         }

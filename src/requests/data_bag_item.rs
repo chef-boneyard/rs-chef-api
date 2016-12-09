@@ -57,16 +57,16 @@ impl DataBagItem {
         client.get(path.as_ref()).and_then(|r| r.from_json::<DataBagItem>())
     }
 
-    pub fn id(&self) -> String {
-        self.raw_data
-            .get("id")
-            .map(|id| serde_json::from_value(*id).unwrap())
-            .unwrap()
-        // self.raw_data.get("id").unwrap().as_string().unwrap().to_owned()
+    pub fn id(&self) -> Result<String> {
+        if let Some(id) = self.raw_data.get("id") {
+            serde_json::from_value(id.clone()).chain_err(|| "Failed to fetch field")
+        } else {
+            Err(ErrorKind::KeyMissingError("id".to_owned()).into())
+        }
     }
 
     pub fn save(&self, client: &ApiClient) -> Result<DataBagItem> {
-        let id = &self.id();
+        let id = try!(self.id());
         let data_bag = &self.data_bag.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}/{}", org, data_bag, id);
@@ -74,7 +74,7 @@ impl DataBagItem {
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<DataBagItem> {
-        let id = &self.id();
+        let id = try!(self.id());
         let data_bag = &self.data_bag.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}/{}", org, data_bag, id);
@@ -132,10 +132,11 @@ impl Iterator for DataBagItemList {
     }
 
     fn next(&mut self) -> Option<Result<DataBagItem>> {
-        if self.count < self.data_bag_items.len() {
-            let name = self.data_bag_items[self.count];
-            self.count += 1;
-            Some(DataBagItem::fetch(&self.client, self.data_bag.clone(), name))
+
+        if self.data_bag_items.len() >= 1 {
+            Some(DataBagItem::fetch(&self.client,
+                                    self.data_bag.clone(),
+                                    self.data_bag_items.remove(0)))
         } else {
             None
         }
@@ -144,8 +145,8 @@ impl Iterator for DataBagItemList {
 
 #[cfg(test)]
 mod tests {
-    use super::DataBagItem;
-    use std::fs::File;
+    // use super::DataBagItem;
+    // use std::fs::File;
 
     //     #[test]
     //     fn test_data_bag_item_from_file() {

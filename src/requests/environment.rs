@@ -113,10 +113,8 @@ impl Iterator for EnvironmentList {
     }
 
     fn next(&mut self) -> Option<Result<Environment>> {
-        if self.count < self.environments.len() {
-            let name = self.environments[self.count];
-            self.count += 1;
-            Some(Environment::fetch(&self.client, name))
+        if self.environments.len() >= 1 {
+            Some(Environment::fetch(&self.client, self.environments.remove(0)))
         } else {
             None
         }

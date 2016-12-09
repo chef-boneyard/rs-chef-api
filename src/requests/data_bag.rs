@@ -57,10 +57,3 @@ impl DataBag {
         Ok(try!(serde_json::from_reader::<R, DataBag>(r)))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::DataBag;
-    use std::fs::File;
-
-}

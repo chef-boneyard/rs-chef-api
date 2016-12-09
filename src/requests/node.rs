@@ -116,10 +116,8 @@ impl Iterator for NodeList {
     }
 
     fn next(&mut self) -> Option<Result<Node>> {
-        if self.count < self.nodes.len() {
-            let name = self.nodes[self.count];
-            self.count += 1;
-            Some(Node::fetch(&self.client, name))
+        if self.nodes.len() >= 1 {
+            Some(Node::fetch(&self.client, self.nodes.remove(0)))
         } else {
             None
         }
