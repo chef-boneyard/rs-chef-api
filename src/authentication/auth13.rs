@@ -9,8 +9,9 @@ use std::fmt;
 use std::fs::File;
 use std::io::Read;
 use utils::{squeeze_path, expand_string};
-use authentication::BASE64_AUTH;
+use authentication::{BASE64_AUTH, Authenticator};
 use errors::*;
+use std::ascii::AsciiExt;
 
 #[derive(Clone)]
 pub struct Auth13 {
@@ -44,10 +45,11 @@ impl Auth13 {
                userid: &str,
                api_version: &str,
                body: Option<String>)
-               -> Auth13 {
+               -> impl Authenticator {
         let dt = UTC::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
         let userid: String = userid.into();
+        let method = String::from(method).to_ascii_uppercase();
 
         let mut headers = Headers::new();
         headers.set(OpsSign(String::from("algorithm=sha256;version=1.3")));
@@ -113,8 +115,10 @@ impl Auth13 {
             Err(_) => Err(ErrorKind::PrivateKeyError(self.keypath.clone()).into()),
         }
     }
+}
 
-    pub fn headers(self) -> Result<Headers> {
+impl Authenticator for Auth13 {
+    fn headers(self) -> Result<Headers> {
         let fin = try!(self.set_content_hash());
         let enc = try!(fin.signed_request());
         let mut headers = fin.headers;

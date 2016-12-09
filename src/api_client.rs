@@ -1,4 +1,6 @@
-use authentication::Authentication;
+use authentication::Authenticator;
+use authentication::auth11::Auth11;
+use authentication::auth13::Auth13;
 use config::Config;
 use http_headers::*;
 use hyper::client::Response as HyperResponse;
@@ -7,6 +9,7 @@ use hyper::header::{Accept, ContentType, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::client::IntoUrl;
+use hyper::header::Headers;
 use hyper::net::HttpsConnector;
 use hyper_openssl::OpensslClient;
 use std::io::Read;
@@ -85,12 +88,16 @@ impl ApiClient {
         let keypath = self.config.keypath.clone().unwrap();
         let sign_ver = self.config.sign_ver.clone();
 
-        let auth = Authentication::new(path, keypath, method, userid, sign_ver);
-        let auth = auth.api_version("1");
+        let headers: Headers = match sign_ver.as_str() {
+            "1.1" => {
+                try!(Auth11::new(path, &keypath, method, &userid, "1", Some(body.into())).headers())
+            }
+            _ => {
+                try!(Auth13::new(path, &keypath, method, &userid, "1", Some(body.into())).headers())
+            }
+        };
 
         let url = try!(format!("{}{}", &self.config.url_base(), path).into_url());
-
-        let auth = auth.body(body);
 
         let mth = match method {
             "put" => Method::Put,
@@ -106,7 +113,6 @@ impl ApiClient {
         let client = client.request(mth, url);
         let client = client.body(body.as_bytes());
 
-        let headers = auth.headers();
         let mut headers = headers.clone();
 
         let json = Mime(TopLevel::Application, SubLevel::Json, vec![]);
