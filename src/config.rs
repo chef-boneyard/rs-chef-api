@@ -27,29 +27,32 @@ impl Config {
     /// Load a configuration file from JSON
     pub fn from_json(path: &str) -> Result<Config> {
         let path = get_absolute_path(path);
-        match File::open(path) {
-            Ok(fh) => {
-                let val: Value = try!(serde_json::from_reader(fh));
-                let obj = val.as_object().unwrap();
+        let fh = try!(File::open(&path));
+        let val: Value = try!(serde_json::from_reader(fh));
 
-                let key: String = try!(serde_json::from_value(*obj.get("client_key").unwrap()));
-                let key = get_absolute_path(key.as_ref());
-                let endpoint: String = try!(serde_json::from_value(*obj.get("chef_server_url")
-                    .unwrap()));
-                let user: String = try!(serde_json::from_value(*obj.get("node_name").unwrap()));
-                let sign_ver: String = serde_json::from_value(*obj.get("node_name").unwrap())
-                    .unwrap_or("1.3".into());
+        if let Some(ref obj) = val.as_object() {
+            let key = obj.get("client_key").unwrap();
+            let key: String = try!(serde_json::from_value(key.clone()));
+            let key = get_absolute_path(key.as_ref());
 
-                let endpoint = try!(Url::parse(endpoint.as_ref()));
+            let endpoint = obj.get("chef_server_url").unwrap();
+            let endpoint: String = try!(serde_json::from_value(endpoint.clone()));
 
-                Ok(Config {
-                    endpoint: Some(endpoint),
-                    user: Some(user),
-                    keypath: Some(key),
-                    sign_ver: sign_ver,
-                })
-            }
-            Err(_) => panic!("Couldn't open config file"),
+            let user = obj.get("node_name").unwrap();
+            let user: String = try!(serde_json::from_value(user.clone()));
+
+            let sign_ver: String = "1.3".into();
+
+            let endpoint = try!(Url::parse(endpoint.as_ref()));
+
+            Ok(Config {
+                endpoint: Some(endpoint),
+                user: Some(user),
+                keypath: Some(key),
+                sign_ver: sign_ver,
+            })
+        } else {
+            Err(ErrorKind::UnparseableConfigError(path).into())
         }
     }
 
@@ -85,39 +88,56 @@ fn get_absolute_path(val: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use url::Url;
 
     const ENDPOINT: &'static str = "https://localhost/organizations/clownco";
     const CONFIG: &'static str = "fixtures/config.json";
 
     #[test]
     fn test_from_json() {
-        let cfg = Config::from_json(CONFIG);
-        assert_eq!(cfg.endpoint.unwrap().serialize_path().unwrap(),
-                   "/organizations/rs_chef_api")
+        let cfg = Config::from_json(CONFIG).unwrap();
+        assert_eq!(cfg.endpoint.unwrap().path(), "/organizations/rs_chef_api")
     }
 
     #[test]
     fn test_config_endpoint() {
-        let cfg = Config::new().endpoint(ENDPOINT);
-        assert_eq!(cfg.endpoint.unwrap().serialize_path().unwrap(),
-                   "/organizations/clownco")
+        let url = Url::parse(ENDPOINT).unwrap();
+        let cfg = Config {
+            endpoint: Some(url),
+            user: None,
+            keypath: None,
+            sign_ver: String::from("1.3"),
+        };
+        assert_eq!(cfg.endpoint.unwrap().path(), "/organizations/clownco")
     }
 
     #[test]
     fn test_config_organization() {
-        let cfg = Config::new().endpoint(ENDPOINT);
+        let url = Url::parse(ENDPOINT).unwrap();
+        let cfg = Config {
+            endpoint: Some(url),
+            user: None,
+            keypath: None,
+            sign_ver: String::from("1.3"),
+        };
         assert_eq!(cfg.organization_path(), "/organizations/clownco")
     }
 
     #[test]
     fn test_config_base_url() {
-        let cfg = Config::new().endpoint(ENDPOINT);
+        let url = Url::parse(ENDPOINT).unwrap();
+        let cfg = Config {
+            endpoint: Some(url),
+            user: None,
+            keypath: None,
+            sign_ver: String::from("1.3"),
+        };
         assert_eq!(cfg.url_base(), "https://localhost:443")
     }
 
     #[test]
     fn test_default_sign_ver() {
         let cfg = Config::new();
-        assert_eq!(cfg.sign_ver, "1.1")
+        assert_eq!(cfg.sign_ver, "1.3")
     }
 }
