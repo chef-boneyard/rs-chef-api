@@ -65,7 +65,7 @@ impl Authentication {
                     &self.userid,
                     &self.api_version.unwrap(),
                     self.body)
-            .headers()
+            .headers().unwrap()
     }
 }
 
