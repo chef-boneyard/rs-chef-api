@@ -8,15 +8,17 @@ time = "*"
 log = "*"
 rustc-serialize = "*"
 clippy = {version = "*", optional = true}
-hyper = {version = "0.9", features = [ "serde-serialization" ] }
+hyper = {version = "0.9", default_features = false, features = [ "serde-serialization" ] }
+hyper-openssl = "0.1"
+
 url = "*"
 chrono = "*"
-openssl = "*"
-env_logger = "0.3"
+openssl = "0.9"
+env_logger = "*"
 serde = "*"
-serde_macros = "*"
+serde_derive = "*"
 serde_json = "*"
-error-chain = "0.4.0"
+error-chain = "0.7"
 
 [features]
 default = []

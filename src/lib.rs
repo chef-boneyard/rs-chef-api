@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "dev", plugin(clippy))]
 
 #![feature(custom_derive, plugin, custom_attribute)]
-#![plugin(serde_macros)]
+#![feature(proc_macro)]
 
 // #![deny(missing_docs,
 //         missing_debug_implementations, missing_copy_implementations,
@@ -12,6 +12,7 @@
 //         unstable_features,
 //         unused_import_braces, unused_qualifications)]
 
+#![recursion_limit = "1024"]
 #[macro_use]
 extern crate error_chain;
 
@@ -22,10 +23,13 @@ extern crate url;
 
 #[macro_use]
 extern crate hyper;
+extern crate hyper_openssl;
 
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 

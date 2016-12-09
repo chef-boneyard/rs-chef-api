@@ -1,10 +1,9 @@
 use chrono::*;
 use http_headers::*;
 use hyper::header::Headers;
-use openssl::crypto::hash::hash;
-use openssl::crypto::hash::Type::SHA256;
-use openssl::crypto::pkey::PKey;
-use openssl::crypto::rsa::RSA;
+use openssl::hash::{MessageDigest, hash};
+use openssl::sign::Signer;
+use openssl::pkey::PKey;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
 use std::fs::File;
@@ -39,8 +38,13 @@ impl fmt::Debug for Auth13 {
 }
 
 impl Auth13 {
-    pub fn new(path: &str, key: &str, method: &str, userid: &str, api_version: &str, body: Option<String>) -> Auth13
-    {
+    pub fn new(path: &str,
+               key: &str,
+               method: &str,
+               userid: &str,
+               api_version: &str,
+               body: Option<String>)
+               -> Auth13 {
         let dt = UTC::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
         let userid: String = userid.into();
@@ -65,7 +69,7 @@ impl Auth13 {
 
     fn content_hash(&self) -> Result<String> {
         let body = expand_string(&self.body);
-        let content = try!(hash(SHA256, body.as_bytes())).to_base64(BASE64_AUTH);
+        let content = try!(hash(MessageDigest::sha256(), body.as_bytes())).to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
     }
@@ -74,11 +78,6 @@ impl Auth13 {
         let hsh = try!(self.content_hash());
         self.headers.set(OpsContentHash(hsh));
         Ok(self)
-    }
-
-    fn canonical_user_id(&self) -> Result<String> {
-        let hash = try!(hash(SHA256, &self.userid.as_bytes())).to_base64(BASE64_AUTH);
-        Ok(hash)
     }
 
     fn canonical_request(&self) -> Result<String> {
@@ -97,15 +96,19 @@ impl Auth13 {
 
     fn signed_request(&self) -> Result<String> {
         let mut key: Vec<u8> = vec![];
-
         match File::open(&self.keypath) {
             Ok(mut fh) => {
-                try!(fh.read(&mut key));
+                try!(fh.read_to_end(&mut key));
+                let key = try!(PKey::private_key_from_pem(key.as_slice()));
+
                 let cr = try!(self.canonical_request());
                 let cr = cr.as_bytes();
-                let key = try!(RSA::private_key_from_pem(&key));
-                let key = try!(key.sign(SHA256, &cr));
-                Ok(key.to_base64(BASE64_AUTH))
+
+                let mut signer = try!(Signer::new(MessageDigest::sha256(), &key));
+                signer.update(cr).unwrap();
+                let result = try!(signer.finish());
+
+                Ok(result.to_base64(BASE64_AUTH))
             }
             Err(_) => Err(ErrorKind::PrivateKeyError(self.keypath.clone()).into()),
         }
@@ -132,6 +135,13 @@ mod tests {
     use http_headers::*;
     use hyper::header::Headers;
 
+    use openssl::hash::MessageDigest;
+    use openssl::sign::Verifier;
+    use openssl::pkey::PKey;
+    use rustc_serialize::base64::FromBase64;
+    use std::fs::File;
+    use std::io::Read;
+
     const PATH: &'static str = "/organizations/clownco";
     const BODY: &'static str = "Spec Body";
     const USER: &'static str = "spec-user";
@@ -141,52 +151,28 @@ mod tests {
 
     #[test]
     fn test_new_authentication() {
-        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER);
+        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
         assert_eq!(auth.body, None)
     }
 
     #[test]
     fn test_userid() {
-        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER);
+        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
         assert_eq!(auth.userid, "spec-user");
         assert_eq!(auth.headers.get::<OpsUserId>().unwrap().to_string(),
-        "spec-user")
+                   "spec-user")
     }
 
     #[test]
     fn test_method() {
-        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER);
+        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
         assert_eq!(auth.method, "GET")
-    }
-
-    #[test]
-    fn test_canonical_user_id_v13() {
-        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER);
-        assert_eq!(auth.canonical_user_id(), "EAF7Wv/hbAudWV5ZkwKz40Z/lO0=")
     }
 
     #[test]
     fn test_canonical_request() {
         let auth = Auth13 {
-            body: Some(String::from(BODY)),
-            date: String::from(DT),
-            headers: Headers::new(),
-            keypath: String::from(""),
-            method: String::from("POST"),
-            path: String::from(PATH),
-            userid: String::from(USER),
-            version: String::from("1.3"),
-        };
-        assert_eq!(auth.canonical_request(),
-        "Method:POST\nHashed \
-        Path:YtBWDn1blGGuFIuKksdwXzHU9oE=\nX-Ops-Content-Hash:\
-                    DFteJZPVv6WKdQmMqZUQUumUyRs=\nX-Ops-Timestamp:2009-01-01T12:00:\
-                    00Z\nX-Ops-UserId:EAF7Wv/hbAudWV5ZkwKz40Z/lO0=")
-    }
-
-    #[test]
-    fn test_private_key() {
-        let auth = Auth13 {
+            api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
             headers: Headers::new(),
@@ -196,19 +182,58 @@ mod tests {
             userid: String::from(USER),
             version: String::from("1.3"),
         };
-        assert_eq!(&auth.encrypted_request(),
-        "UfZD9dRz6rFu6LbP5Mo1oNHcWYxpNIcUfFCffJS1FQa0GtfU/vkt3/O5HuCM\n1wIFl/U0f5faH9EW\
-        pXWY5NwKR031Myxcabw4t4ZLO69CIh/3qx1XnjcZvt2w\nc2R9bx/43IWA/r8w8Q6decuu0f6ZlNhe\
-                    JeJhaYPI8piX/aH+uHBH8zTACZu8\nvMnl5MF3/OIlsZc8cemq6eKYstp8a8KYq9OmkB5IXIX6qVMJ\
-                    HA6fRvQEB/7j\n281Q7oI/O+lE8AmVyBbwruPb7Mp6s4839eYiOdjbDwFjYtbS3XgAjrHlaD7W\nFD\
-                    lbAG7H8Dmvo+wBxmtNkszhzbBnEYtuwQqT8nM/8A==")
+        assert_eq!(auth.canonical_request().unwrap(),
+                   "Method:POST\nPath:/organizations/clownco\nX-Ops-Content-Hash:\
+                    hDlKNZhIhgso3Fs0S0pZwJ0xyBWtR1RBaeHs1DrzOho=\nX-Ops-Sign:version=1.\
+                    3\nX-Ops-Timestamp:2009-01-01T12:00:00Z\nX-Ops-UserId:\
+                    spec-user\nX-Ops-Server-API-Version:1")
+    }
+
+    #[test]
+    fn test_signed_request() {
+        let auth = Auth13 {
+            api_version: String::from("1"),
+            body: Some(String::from(BODY)),
+            date: String::from(DT),
+            headers: Headers::new(),
+            keypath: String::from(PRIVATE_KEY),
+            method: String::from("POST"),
+            path: String::from(PATH),
+            userid: String::from(USER),
+            version: String::from("1.3"),
+        };
+        let sig = &auth.signed_request().unwrap();
+        let req = &auth.canonical_request().unwrap();
+
+        let sig_raw = sig.clone().from_base64().unwrap();
+        let mut key: Vec<u8> = vec![];
+        let mut fh = File::open(PRIVATE_KEY).unwrap();
+        fh.read_to_end(&mut key).unwrap();
+        let key = PKey::private_key_from_pem(key.as_slice()).unwrap();
+
+        let mut ver = Verifier::new(MessageDigest::sha256(), &key).unwrap();
+        ver.update(req.as_bytes()).unwrap();
+        assert!(ver.finish(sig_raw.as_slice()).unwrap());
+
+        assert_eq!(sig,
+                   "FZOmXAyOBAZQV/uw188iBljBJXOm+m8xQ/8KTGLkgGwZNcRFxk1m953XjE3W\n\
+                   VGy1dFT76KeaNWmPCNtDmprfH2na5UZFtfLIKrPv7xm80V+lzEzTd9WBwsfP\n\
+                   42dZ9N+V9I5SVfcL/lWrrlpdybfceJC5jOcP5tzfJXWUITwb6Z3Erg3DU3Uh\n\
+                   H9h9E0qWlYGqmiNCVrBnpe6Si1gU/Jl+rXlRSNbLJ4GlArAPuL976iTYJTzE\n\
+                   MmbLUIm3JRYi00Yb01IUCCKdI90vUq1HHNtlTEu93YZfQaJwRxXlGkCNwIJe\n\
+                   fy49QzaCIEu1XiOx5Jn+4GmkrZch/RrK9VzQWXgs+w==")
     }
 
     #[test]
     fn test_headers() {
-        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER);
-        let headers = auth.as_headers();
+        let auth = Auth13::new(PATH,
+                               PRIVATE_KEY,
+                               "GET",
+                               USER,
+                               "1",
+                               Some(String::from(BODY)));
+        let headers = auth.headers();
 
-        let _ = headers.get_raw("x-ops-authorization-1").unwrap();
+        assert!(headers.get_raw("x-ops-authorization-1").is_some())
     }
 }

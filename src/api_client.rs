@@ -7,6 +7,8 @@ use hyper::header::{Accept, ContentType, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::client::IntoUrl;
+use hyper::net::HttpsConnector;
+use hyper_openssl::OpensslClient;
 use std::io::Read;
 use serde_json;
 use serde::ser::Serialize;
@@ -84,6 +86,7 @@ impl ApiClient {
         let sign_ver = self.config.sign_ver.clone();
 
         let auth = Authentication::new(path, keypath, method, userid, sign_ver);
+        let auth = auth.api_version("1");
 
         let url = try!(format!("{}{}", &self.config.url_base(), path).into_url());
 
@@ -97,7 +100,9 @@ impl ApiClient {
             _ => Method::Get,
         };
 
-        let client = HyperClient::new();
+        let ssl = OpensslClient::new().unwrap();
+        let connector = HttpsConnector::new(ssl);
+        let client = HyperClient::with_connector(connector);
         let client = client.request(mth, url);
         let client = client.body(body.as_bytes());
 
@@ -108,6 +113,7 @@ impl ApiClient {
         headers.set(Accept(vec![qitem(json.clone())]));
         headers.set(ContentType(json));
         headers.set(OpsApiInfo(1));
+        headers.set(OpsApiVersion(1));
         headers.set(ChefVersion(String::from("12.5.1")));
 
         let client = client.headers(headers);

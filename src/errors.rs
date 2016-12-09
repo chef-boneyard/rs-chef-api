@@ -1,5 +1,5 @@
 use openssl;
-use std::io;
+use std;
 use serde_json;
 use url;
 use hyper;
@@ -7,11 +7,11 @@ use api_client::Response;
 
 error_chain! {
     foreign_links {
-        openssl::error::ErrorStack, OpenSSL;
-        io::Error, IOError;
-        serde_json::Error, JsonError;
-        url::ParseError, UrlParseError;
-        hyper::error::Error, HTTPError;
+        OpenSSL(openssl::error::ErrorStack);
+        IOError(std::io::Error);
+        JsonError(serde_json::Error);
+        UrlParseError(url::ParseError);
+        HTTPError(hyper::error::Error);
     }
 
     errors {
@@ -24,6 +24,14 @@ error_chain! {
         }
         UnsuccessfulResponse(resp: Response) {
             description("Got a bad response from the Chef Server")
+        }
+        KeyMissingError(field: String) {
+            description("Failed to fetch field from JSON")
+                display("Failed to fetch {} from JSON", field)
+        }
+        UnparseableConfigError(path: String) {
+            description("Can't read config file")
+                display("Can't read config file at {}", path)
         }
     }
 }

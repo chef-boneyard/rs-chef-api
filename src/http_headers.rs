@@ -11,6 +11,9 @@ header! {
     (OpsContentHash, "X-Ops-Content-Hash") => [String]
 }
 header! {
+    (OpsApiVersion, "X-Ops-Server-API-Version") => [u8]
+}
+header! {
     (OpsApiInfo, "X-Ops-Server-API-Info") => [u8]
 }
 header! {
