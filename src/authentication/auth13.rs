@@ -114,9 +114,9 @@ impl Auth13 {
         }
     }
 
-    pub fn headers(self) -> Headers {
-        let fin = self.set_content_hash().unwrap();
-        let enc = fin.signed_request().unwrap();
+    pub fn headers(self) -> Result<Headers> {
+        let fin = try!(self.set_content_hash());
+        let enc = try!(fin.signed_request());
         let mut headers = fin.headers;
         let mut i = 1;
         for h in enc.split('\n') {
@@ -124,7 +124,7 @@ impl Auth13 {
             headers.set_raw(key, vec![h.as_bytes().to_vec()]);
             i += 1;
         }
-        headers
+        Ok(headers)
     }
 }
 
@@ -232,7 +232,7 @@ mod tests {
                                USER,
                                "1",
                                Some(String::from(BODY)));
-        let headers = auth.headers();
+        let headers = auth.headers().unwrap();
 
         assert!(headers.get_raw("x-ops-authorization-1").is_some())
     }
