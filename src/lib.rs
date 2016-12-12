@@ -4,6 +4,7 @@
 
 #![feature(custom_derive, plugin, custom_attribute)]
 #![feature(proc_macro)]
+#![feature(conservative_impl_trait)]
 
 // #![deny(missing_docs,
 //         missing_debug_implementations, missing_copy_implementations,
