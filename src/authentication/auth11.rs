@@ -145,6 +145,7 @@ impl Authenticator for Auth11 {
 mod tests {
     use super::Auth11;
 
+    use authentication::Authenticator;
     use http_headers::*;
     use hyper::header::Headers;
 
@@ -156,28 +157,24 @@ mod tests {
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
     #[test]
-    fn test_new_authentication() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(auth.body, None)
-    }
-
-    #[test]
     fn test_userid() {
         let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(auth.userid, "spec-user");
-        assert_eq!(auth.headers.get::<OpsUserId>().unwrap().to_string(),
-        "spec-user")
+        assert_eq!(auth.headers().unwrap().get::<OpsUserId>().unwrap().to_string(), "spec-user")
     }
 
     #[test]
-    fn test_method() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(auth.method, "GET")
-    }
-
-    #[test]
-    fn test_canonical_user_id_v11() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
+    fn test_canonical_user_id() {
+        let auth = Auth11 {
+            api_version: String::from("1"),
+            body: Some(String::from(BODY)),
+            date: String::from(DT),
+            headers: Headers::new(),
+            keypath: String::from(PRIVATE_KEY),
+            method: String::from("POST"),
+            path: String::from(PATH),
+            userid: String::from(USER),
+            version: String::from("1.1"),
+        };
         assert_eq!(auth.canonical_user_id().unwrap(), "EAF7Wv/hbAudWV5ZkwKz40Z/lO0=")
     }
 
