@@ -135,6 +135,7 @@ impl Authenticator for Auth13 {
 #[cfg(test)]
 mod tests {
     use super::Auth13;
+    use authentication::Authenticator;
 
     use http_headers::*;
     use hyper::header::Headers;
@@ -154,23 +155,10 @@ mod tests {
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
     #[test]
-    fn test_new_authentication() {
-        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(auth.body, None)
-    }
-
-    #[test]
     fn test_userid() {
         let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(auth.userid, "spec-user");
-        assert_eq!(auth.headers.get::<OpsUserId>().unwrap().to_string(),
+        assert_eq!(auth.headers().unwrap().get::<OpsUserId>().unwrap().to_string(),
                    "spec-user")
-    }
-
-    #[test]
-    fn test_method() {
-        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(auth.method, "GET")
     }
 
     #[test]
