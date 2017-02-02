@@ -2,7 +2,6 @@
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
 
-#![feature(custom_derive, plugin, custom_attribute)]
 #![feature(conservative_impl_trait)]
 
 // #![deny(missing_docs,
