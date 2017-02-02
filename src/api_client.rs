@@ -52,7 +52,7 @@ impl ApiClient {
 
     pub fn from_json_config(pth: &str) -> ApiClient {
         Config::from_json(pth)
-            .map(|cfg| ApiClient::new(cfg))
+            .map(ApiClient::new)
             .unwrap()
     }
 
