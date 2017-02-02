@@ -8,7 +8,8 @@ matrix:
     - rust: nightly
     - rust: stable
     - rust: beta
-    - env: CLIPPY: enabled
+    - env: 
+        CLIPPY: enabled
       rust: nightly
       script: cargo build --features "dev"
   allow_failures:
