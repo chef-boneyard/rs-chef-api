@@ -15,3 +15,4 @@ matrix:
   allow_failures:
     - rust: stable
     - rust: beta
+    - env: CLIPPY=enabled
