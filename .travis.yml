@@ -1,4 +1,5 @@
 language: rust
+cache: cargo
 branches:
   only:
     master
@@ -12,7 +13,11 @@ matrix:
         CLIPPY: enabled
       rust: nightly
       script: cargo build --features "dev"
+    - env:
+        RUSTFMT: enabled
+      rust: nightly
+      before_script: (cargo install rustfmt || true)
+      script: cargo fmt -- --write-mode=diff
   allow_failures:
     - rust: stable
     - rust: beta
-    - env: CLIPPY=enabled
