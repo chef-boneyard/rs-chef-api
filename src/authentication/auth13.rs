@@ -46,7 +46,7 @@ impl Auth13 {
                api_version: &str,
                body: Option<String>)
                -> impl Authenticator {
-        let dt = UTC::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        let dt = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
         let userid: String = userid.into();
         let method = String::from(method).to_ascii_uppercase();
