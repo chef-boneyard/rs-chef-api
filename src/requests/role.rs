@@ -11,7 +11,7 @@ use errors::*;
 chef_json_type!(RoleJsonClass, "Chef::Role");
 chef_json_type!(RoleChefType, "role");
 
-#[derive(Debug,Clone,Serialize,Deserialize,Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Role {
     #[serde(default)]
     pub name: Option<String>,
@@ -35,40 +35,54 @@ impl Read for Role {
             let mut role = Cursor::new(role.as_ref() as &[u8]);
             Read::read(&mut role, buf)
         } else {
-            Err(io::Error::new(IoErrorKind::InvalidData, "Failed to convert role to JSON"))
+            Err(io::Error::new(
+                IoErrorKind::InvalidData,
+                "Failed to convert role to JSON",
+            ))
         }
     }
 }
 
 impl Role {
     pub fn new<S>(name: S) -> Role
-        where S: Into<String>
+    where
+        S: Into<String>,
     {
-        Role { name: Some(name.into()), ..Default::default() }
+        Role {
+            name: Some(name.into()),
+            ..Default::default()
+        }
     }
 
     pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Role> {
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name.into());
-        client.get(path.as_ref()).and_then(|r| r.from_json::<Role>())
+        client
+            .get(path.as_ref())
+            .and_then(|r| r.from_json::<Role>())
     }
 
     pub fn save(&self, client: &ApiClient) -> Result<Role> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name);
-        client.put(path.as_ref(), self).and_then(|r| r.from_json::<Role>())
+        client
+            .put(path.as_ref(), self)
+            .and_then(|r| r.from_json::<Role>())
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<Role> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name);
-        client.delete(path.as_ref()).and_then(|r| r.from_json::<Role>())
+        client
+            .delete(path.as_ref())
+            .and_then(|r| r.from_json::<Role>())
     }
 
     pub fn from_json<R>(r: R) -> Result<Role>
-        where R: Read
+    where
+        R: Read,
     {
         Ok(try!(serde_json::from_reader::<R, Role>(r)))
     }
@@ -77,7 +91,9 @@ impl Role {
 pub fn delete_role(client: &ApiClient, name: &str) -> Result<Role> {
     let org = &client.config.organization_path();
     let path = format!("{}/roles/{}", org, name);
-    client.delete(path.as_ref()).and_then(|r| r.from_json::<Role>())
+    client
+        .delete(path.as_ref())
+        .and_then(|r| r.from_json::<Role>())
 }
 
 #[derive(Debug)]
@@ -91,7 +107,8 @@ impl RoleList {
     pub fn new(client: &ApiClient) -> RoleList {
         let org = &client.config.organization_path();
         let path = format!("{}/roles", org);
-        client.get(path.as_ref())
+        client
+            .get(path.as_ref())
             .and_then(decode_list)
             .and_then(|list| {
                 Ok(RoleList {

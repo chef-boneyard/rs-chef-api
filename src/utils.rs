@@ -17,7 +17,11 @@ pub fn squeeze_path(pth: String) -> String {
         st.push('/');
         st.push_str(p)
     }
-    if st.is_empty() { String::from("/") } else { st }
+    if st.is_empty() {
+        String::from("/")
+    } else {
+        st
+    }
 }
 
 /// The Chef Server returns lists of objects in the form
@@ -27,17 +31,15 @@ pub fn squeeze_path(pth: String) -> String {
 pub fn decode_list(r: Response) -> Result<Vec<String>> {
     let data: Result<Value> = serde_json::from_str(&*r.body).map_err(|err| err.into());
     match data {
-        Ok(data) => {
-            if let Some(obj) = data.as_object() {
-                let mut resp = vec![];
-                for (key, _) in obj.iter() {
-                    resp.push(key.clone());
-                }
-                Ok(resp)
-            } else {
-                Err(ErrorKind::ListError.into())
+        Ok(data) => if let Some(obj) = data.as_object() {
+            let mut resp = vec![];
+            for (key, _) in obj.iter() {
+                resp.push(key.clone());
             }
-        }
+            Ok(resp)
+        } else {
+            Err(ErrorKind::ListError.into())
+        },
         Err(e) => Err(e.into()),
     }
 }

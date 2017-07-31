@@ -5,9 +5,9 @@ use config::Config;
 use http_headers::*;
 use hyper::client::Response as HyperResponse;
 use hyper::Client as HyperClient;
-use hyper::header::{Accept, ContentType, qitem};
+use hyper::header::{qitem, Accept, ContentType};
 use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::client::IntoUrl;
 use hyper::header::Headers;
 use hyper::net::HttpsConnector;
@@ -18,7 +18,7 @@ use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
 use errors::*;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ApiClient {
     pub config: Config,
 }
@@ -32,12 +32,15 @@ pub struct Response {
 impl Response {
     fn from_hyper_response(mut hyper_response: HyperResponse) -> Result<Response> {
         let mut body = String::new();
-        hyper_response.read_to_string(&mut body).map_err(|e| e.into()).map(|_| {
-            Response {
-                hyper_response: hyper_response,
-                body: body,
-            }
-        })
+        hyper_response
+            .read_to_string(&mut body)
+            .map_err(|e| e.into())
+            .map(|_| {
+                Response {
+                    hyper_response: hyper_response,
+                    body: body,
+                }
+            })
     }
 
     pub fn from_json<T: DeserializeOwned>(&self) -> Result<T> {
@@ -51,9 +54,7 @@ impl ApiClient {
     }
 
     pub fn from_json_config(pth: &str) -> ApiClient {
-        Config::from_json(pth)
-            .map(ApiClient::new)
-            .unwrap()
+        Config::from_json(pth).map(ApiClient::new).unwrap()
     }
 
     pub fn config(mut self, config: Config) -> ApiClient {
@@ -70,14 +71,16 @@ impl ApiClient {
     }
 
     pub fn post<B>(&self, path: &str, body: B) -> Result<Response>
-        where B: Serialize
+    where
+        B: Serialize,
     {
         let body = try!(serde_json::to_string(&body));
         self.send_with_body(path, body.as_ref(), "post")
     }
 
     pub fn put<B>(&self, path: &str, body: B) -> Result<Response>
-        where B: Serialize
+    where
+        B: Serialize,
     {
         let body = try!(serde_json::to_string(&body));
         self.send_with_body(path, body.as_ref(), "put")

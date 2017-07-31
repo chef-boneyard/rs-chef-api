@@ -11,7 +11,7 @@ use errors::*;
 chef_json_type!(DataBagItemJsonClass, "Chef::DataBagItem");
 chef_json_type!(DataBagItemChefType, "data_bag_item");
 
-#[derive(Debug,Clone,Serialize,Deserialize,Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DataBagItem {
     id: Option<String>,
     #[serde(default)]
@@ -30,16 +30,19 @@ impl Read for DataBagItem {
             let mut data_bag_item = Cursor::new(data_bag_item.as_ref() as &[u8]);
             Read::read(&mut data_bag_item, buf)
         } else {
-            Err(io::Error::new(IoErrorKind::InvalidData,
-                               "Failed to convert data bag item to JSON"))
+            Err(io::Error::new(
+                IoErrorKind::InvalidData,
+                "Failed to convert data bag item to JSON",
+            ))
         }
     }
 }
 
 impl DataBagItem {
     pub fn new<N, D>(id: N, data_bag: D) -> DataBagItem
-        where N: Into<String>,
-              D: Into<String>
+    where
+        N: Into<String>,
+        D: Into<String>,
     {
         DataBagItem {
             id: Some(id.into()),
@@ -49,12 +52,15 @@ impl DataBagItem {
     }
 
     pub fn fetch<N, D>(client: &ApiClient, data_bag: D, id: N) -> Result<DataBagItem>
-        where N: Into<String>,
-              D: Into<String>
+    where
+        N: Into<String>,
+        D: Into<String>,
     {
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}/{}", org, data_bag.into(), id.into());
-        client.get(path.as_ref()).and_then(|r| r.from_json::<DataBagItem>())
+        client
+            .get(path.as_ref())
+            .and_then(|r| r.from_json::<DataBagItem>())
     }
 
     pub fn id(&self) -> Result<String> {
@@ -70,7 +76,9 @@ impl DataBagItem {
         let data_bag = &self.data_bag.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}/{}", org, data_bag, id);
-        client.put(path.as_ref(), self).and_then(|r| r.from_json::<DataBagItem>())
+        client
+            .put(path.as_ref(), self)
+            .and_then(|r| r.from_json::<DataBagItem>())
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<DataBagItem> {
@@ -78,23 +86,29 @@ impl DataBagItem {
         let data_bag = &self.data_bag.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}/{}", org, data_bag, id);
-        client.delete(path.as_ref()).and_then(|r| r.from_json::<DataBagItem>())
+        client
+            .delete(path.as_ref())
+            .and_then(|r| r.from_json::<DataBagItem>())
     }
 
     pub fn from_json<R>(r: R) -> Result<DataBagItem>
-        where R: Read
+    where
+        R: Read,
     {
         Ok(try!(serde_json::from_reader::<R, DataBagItem>(r)))
     }
 }
 
 pub fn delete_data_bag_item<D, N>(client: &ApiClient, data_bag: D, id: N) -> Result<DataBagItem>
-    where D: Into<String>,
-          N: Into<String>
+where
+    D: Into<String>,
+    N: Into<String>,
 {
     let org = &client.config.organization_path();
     let path = format!("{}/data/{}/{}", org, data_bag.into(), id.into());
-    client.delete(path.as_ref()).and_then(|r| r.from_json::<DataBagItem>())
+    client
+        .delete(path.as_ref())
+        .and_then(|r| r.from_json::<DataBagItem>())
 }
 
 #[derive(Debug)]
@@ -110,7 +124,8 @@ impl DataBagItemList {
         let org = &client.config.organization_path();
         let db = data_bag.into();
         let path = format!("{}/data/{}", org, &db);
-        client.get(path.as_ref())
+        client
+            .get(path.as_ref())
             .and_then(decode_list)
             .and_then(|list| {
                 Ok(DataBagItemList {
@@ -134,9 +149,11 @@ impl Iterator for DataBagItemList {
     fn next(&mut self) -> Option<Result<DataBagItem>> {
 
         if self.data_bag_items.len() >= 1 {
-            Some(DataBagItem::fetch(&self.client,
-                                    self.data_bag.clone(),
-                                    self.data_bag_items.remove(0)))
+            Some(DataBagItem::fetch(
+                &self.client,
+                self.data_bag.clone(),
+                self.data_bag_items.remove(0),
+            ))
         } else {
             None
         }

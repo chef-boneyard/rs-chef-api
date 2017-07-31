@@ -11,7 +11,7 @@ use errors::*;
 chef_json_type!(EnvironmentJsonClass, "Chef::Environment");
 chef_json_type!(EnvironmentChefType, "environment");
 
-#[derive(Debug,Clone,Serialize,Deserialize,Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Environment {
     #[serde(default)]
     pub name: Option<String>,
@@ -25,7 +25,7 @@ pub struct Environment {
     pub cookbook_versions: HashMap<String, Value>,
     #[serde(default)]
     pub default_attributes: HashMap<String, Value>,
-    #[serde(default,rename="override")]
+    #[serde(default, rename = "override")]
     pub override_attributes: HashMap<String, Value>,
 }
 
@@ -35,41 +35,54 @@ impl Read for Environment {
             let mut environment = Cursor::new(environment.as_ref() as &[u8]);
             Read::read(&mut environment, buf)
         } else {
-            Err(io::Error::new(IoErrorKind::InvalidData,
-                               "Failed to convert environment to JSON"))
+            Err(io::Error::new(
+                IoErrorKind::InvalidData,
+                "Failed to convert environment to JSON",
+            ))
         }
     }
 }
 
 impl Environment {
     pub fn new<S>(name: S) -> Environment
-        where S: Into<String>
+    where
+        S: Into<String>,
     {
-        Environment { name: Some(name.into()), ..Default::default() }
+        Environment {
+            name: Some(name.into()),
+            ..Default::default()
+        }
     }
 
     pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Environment> {
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name.into());
-        client.get(path.as_ref()).and_then(|r| r.from_json::<Environment>())
+        client
+            .get(path.as_ref())
+            .and_then(|r| r.from_json::<Environment>())
     }
 
     pub fn save(&self, client: &ApiClient) -> Result<Environment> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name);
-        client.put(path.as_ref(), self).and_then(|r| r.from_json::<Environment>())
+        client
+            .put(path.as_ref(), self)
+            .and_then(|r| r.from_json::<Environment>())
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<Environment> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name);
-        client.delete(path.as_ref()).and_then(|r| r.from_json::<Environment>())
+        client
+            .delete(path.as_ref())
+            .and_then(|r| r.from_json::<Environment>())
     }
 
     pub fn from_json<R>(r: R) -> Result<Environment>
-        where R: Read
+    where
+        R: Read,
     {
         Ok(try!(serde_json::from_reader::<R, Environment>(r)))
     }
@@ -78,7 +91,9 @@ impl Environment {
 pub fn delete_environment(client: &ApiClient, name: &str) -> Result<Environment> {
     let org = &client.config.organization_path();
     let path = format!("{}/environments/{}", org, name);
-    client.delete(path.as_ref()).and_then(|r| r.from_json::<Environment>())
+    client
+        .delete(path.as_ref())
+        .and_then(|r| r.from_json::<Environment>())
 }
 
 #[derive(Debug)]
@@ -92,7 +107,8 @@ impl EnvironmentList {
     pub fn new(client: &ApiClient) -> EnvironmentList {
         let org = &client.config.organization_path();
         let path = format!("{}/environments", org);
-        client.get(path.as_ref())
+        client
+            .get(path.as_ref())
             .and_then(decode_list)
             .and_then(|list| {
                 Ok(EnvironmentList {
@@ -114,7 +130,10 @@ impl Iterator for EnvironmentList {
 
     fn next(&mut self) -> Option<Result<Environment>> {
         if self.environments.len() >= 1 {
-            Some(Environment::fetch(&self.client, self.environments.remove(0)))
+            Some(Environment::fetch(
+                &self.client,
+                self.environments.remove(0),
+            ))
         } else {
             None
         }
