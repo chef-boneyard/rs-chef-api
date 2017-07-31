@@ -17,7 +17,7 @@ matrix:
         RUSTFMT: enabled
       rust: nightly
       before_script:
-        - (cargo install rustfmt || true)
+        - (cargo install rustfmt-nightly || true)
         - export PATH=$PATH:$HOME/.cargo/bin
       script: cargo fmt -- --write-mode=diff
   allow_failures:

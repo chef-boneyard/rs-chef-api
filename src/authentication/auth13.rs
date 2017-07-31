@@ -1,15 +1,15 @@
 use chrono::*;
 use http_headers::*;
 use hyper::header::Headers;
-use openssl::hash::{MessageDigest, hash};
+use openssl::hash::{hash, MessageDigest};
 use openssl::sign::Signer;
 use openssl::pkey::PKey;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
 use std::fs::File;
 use std::io::Read;
-use utils::{squeeze_path, expand_string};
-use authentication::{BASE64_AUTH, Authenticator};
+use utils::{expand_string, squeeze_path};
+use authentication::{Authenticator, BASE64_AUTH};
 use errors::*;
 use std::ascii::AsciiExt;
 
@@ -39,14 +39,15 @@ impl fmt::Debug for Auth13 {
 }
 
 impl Auth13 {
-    pub fn new(path: &str,
-               key: &str,
-               method: &str,
-               userid: &str,
-               api_version: &str,
-               body: Option<String>)
-               -> impl Authenticator {
-        let dt = UTC::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    pub fn new(
+        path: &str,
+        key: &str,
+        method: &str,
+        userid: &str,
+        api_version: &str,
+        body: Option<String>,
+    ) -> impl Authenticator {
+        let dt = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
         let userid: String = userid.into();
         let method = String::from(method).to_ascii_uppercase();
@@ -83,15 +84,17 @@ impl Auth13 {
     }
 
     fn canonical_request(&self) -> Result<String> {
-        let cr = format!("Method:{}\nPath:{}\nX-Ops-Content-Hash:{}\n\
-                         X-Ops-Sign:version=1.3\nX-Ops-Timestamp:{}\n\
-                         X-Ops-UserId:{}\nX-Ops-Server-API-Version:{}",
-                         &self.method,
-                         &self.path,
-                         try!(self.content_hash()),
-                         self.date,
-                         &self.userid,
-                         &self.api_version);
+        let cr = format!(
+            "Method:{}\nPath:{}\nX-Ops-Content-Hash:{}\n\
+             X-Ops-Sign:version=1.3\nX-Ops-Timestamp:{}\n\
+             X-Ops-UserId:{}\nX-Ops-Server-API-Version:{}",
+            &self.method,
+            &self.path,
+            try!(self.content_hash()),
+            self.date,
+            &self.userid,
+            &self.api_version
+        );
         debug!("Canonical Request is: {:?}", cr);
         Ok(cr)
     }
@@ -157,8 +160,14 @@ mod tests {
     #[test]
     fn test_userid() {
         let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(auth.headers().unwrap().get::<OpsUserId>().unwrap().to_string(),
-                   "spec-user")
+        assert_eq!(
+            auth.headers()
+                .unwrap()
+                .get::<OpsUserId>()
+                .unwrap()
+                .to_string(),
+            "spec-user"
+        )
     }
 
     #[test]
@@ -174,11 +183,13 @@ mod tests {
             userid: String::from(USER),
             version: String::from("1.3"),
         };
-        assert_eq!(auth.canonical_request().unwrap(),
-                   "Method:POST\nPath:/organizations/clownco\nX-Ops-Content-Hash:\
-                    hDlKNZhIhgso3Fs0S0pZwJ0xyBWtR1RBaeHs1DrzOho=\nX-Ops-Sign:version=1.\
-                    3\nX-Ops-Timestamp:2009-01-01T12:00:00Z\nX-Ops-UserId:\
-                    spec-user\nX-Ops-Server-API-Version:1")
+        assert_eq!(
+            auth.canonical_request().unwrap(),
+            "Method:POST\nPath:/organizations/clownco\nX-Ops-Content-Hash:\
+             hDlKNZhIhgso3Fs0S0pZwJ0xyBWtR1RBaeHs1DrzOho=\nX-Ops-Sign:version=1.\
+             3\nX-Ops-Timestamp:2009-01-01T12:00:00Z\nX-Ops-UserId:\
+             spec-user\nX-Ops-Server-API-Version:1"
+        )
     }
 
     #[test]
@@ -207,23 +218,27 @@ mod tests {
         ver.update(req.as_bytes()).unwrap();
         assert!(ver.finish(sig_raw.as_slice()).unwrap());
 
-        assert_eq!(sig,
-                   "FZOmXAyOBAZQV/uw188iBljBJXOm+m8xQ/8KTGLkgGwZNcRFxk1m953XjE3W\n\
-                   VGy1dFT76KeaNWmPCNtDmprfH2na5UZFtfLIKrPv7xm80V+lzEzTd9WBwsfP\n\
-                   42dZ9N+V9I5SVfcL/lWrrlpdybfceJC5jOcP5tzfJXWUITwb6Z3Erg3DU3Uh\n\
-                   H9h9E0qWlYGqmiNCVrBnpe6Si1gU/Jl+rXlRSNbLJ4GlArAPuL976iTYJTzE\n\
-                   MmbLUIm3JRYi00Yb01IUCCKdI90vUq1HHNtlTEu93YZfQaJwRxXlGkCNwIJe\n\
-                   fy49QzaCIEu1XiOx5Jn+4GmkrZch/RrK9VzQWXgs+w==")
+        assert_eq!(
+            sig,
+            "FZOmXAyOBAZQV/uw188iBljBJXOm+m8xQ/8KTGLkgGwZNcRFxk1m953XjE3W\n\
+             VGy1dFT76KeaNWmPCNtDmprfH2na5UZFtfLIKrPv7xm80V+lzEzTd9WBwsfP\n\
+             42dZ9N+V9I5SVfcL/lWrrlpdybfceJC5jOcP5tzfJXWUITwb6Z3Erg3DU3Uh\n\
+             H9h9E0qWlYGqmiNCVrBnpe6Si1gU/Jl+rXlRSNbLJ4GlArAPuL976iTYJTzE\n\
+             MmbLUIm3JRYi00Yb01IUCCKdI90vUq1HHNtlTEu93YZfQaJwRxXlGkCNwIJe\n\
+             fy49QzaCIEu1XiOx5Jn+4GmkrZch/RrK9VzQWXgs+w=="
+        )
     }
 
     #[test]
     fn test_headers() {
-        let auth = Auth13::new(PATH,
-                               PRIVATE_KEY,
-                               "GET",
-                               USER,
-                               "1",
-                               Some(String::from(BODY)));
+        let auth = Auth13::new(
+            PATH,
+            PRIVATE_KEY,
+            "GET",
+            USER,
+            "1",
+            Some(String::from(BODY)),
+        );
         let headers = auth.headers().unwrap();
 
         assert!(headers.get_raw("x-ops-authorization-1").is_some())

@@ -1,4 +1,4 @@
-use rustc_serialize::base64::{Config, Newline, CharacterSet};
+use rustc_serialize::base64::{CharacterSet, Config, Newline};
 use hyper::header::Headers;
 use errors::*;
 

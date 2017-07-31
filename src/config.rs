@@ -6,7 +6,7 @@ use std::env;
 use std::fs::File;
 use errors::*;
 
-#[derive(Clone,Debug,Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Config {
     pub endpoint: Option<Url>,
     pub user: Option<String>,
@@ -16,7 +16,10 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Config {
-        Config { sign_ver: String::from("1.3"), ..Default::default() }
+        Config {
+            sign_ver: String::from("1.3"),
+            ..Default::default()
+        }
     }
 
     /// Load a configuration file from JSON

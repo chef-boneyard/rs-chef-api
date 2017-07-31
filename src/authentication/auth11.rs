@@ -1,15 +1,15 @@
 use chrono::*;
 use http_headers::*;
 use hyper::header::Headers;
-use openssl::hash::{MessageDigest, hash};
+use openssl::hash::{hash, MessageDigest};
 use openssl::rsa::Rsa;
 use openssl::rsa::PKCS1_PADDING;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
 use std::fs::File;
 use std::io::Read;
-use utils::{squeeze_path, expand_string};
-use authentication::{BASE64_AUTH, Authenticator};
+use utils::{expand_string, squeeze_path};
+use authentication::{Authenticator, BASE64_AUTH};
 use errors::*;
 use std::ascii::AsciiExt;
 
@@ -39,14 +39,15 @@ impl fmt::Debug for Auth11 {
 }
 
 impl Auth11 {
-    pub fn new(path: &str,
-               key: &str,
-               method: &str,
-               userid: &str,
-               api_version: &str,
-               body: Option<String>)
-               -> impl Authenticator {
-        let dt = UTC::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    pub fn new(
+        path: &str,
+        key: &str,
+        method: &str,
+        userid: &str,
+        api_version: &str,
+        body: Option<String>,
+    ) -> impl Authenticator {
+        let dt = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
         let userid: String = userid.into();
         let method = String::from(method).to_ascii_uppercase();
@@ -71,13 +72,15 @@ impl Auth11 {
 
     fn hashed_path(&self) -> Result<String> {
         debug!("Path is: {:?}", &self.path);
-        let hash = hash(MessageDigest::sha1(), &self.path.as_bytes())?.to_base64(BASE64_AUTH);
+        let hash = hash(MessageDigest::sha1(), &self.path.as_bytes())?
+            .to_base64(BASE64_AUTH);
         Ok(hash)
     }
 
     fn content_hash(&self) -> Result<String> {
         let body = expand_string(&self.body);
-        let content = hash(MessageDigest::sha1(), body.as_bytes())?.to_base64(BASE64_AUTH);
+        let content = hash(MessageDigest::sha1(), body.as_bytes())?
+            .to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
     }
@@ -95,14 +98,16 @@ impl Auth11 {
     }
 
     fn canonical_request(&self) -> Result<String> {
-        let cr = format!("Method:{}\nHashed Path:{}\n\
-                          X-Ops-Content-Hash:{}\n\
-                          X-Ops-Timestamp:{}\nX-Ops-UserId:{}",
-                         &self.method,
-                         try!(self.hashed_path()),
-                         try!(self.content_hash()),
-                         self.date,
-                         try!(self.canonical_user_id()));
+        let cr = format!(
+            "Method:{}\nHashed Path:{}\n\
+             X-Ops-Content-Hash:{}\n\
+             X-Ops-Timestamp:{}\nX-Ops-UserId:{}",
+            &self.method,
+            try!(self.hashed_path()),
+            try!(self.content_hash()),
+            self.date,
+            try!(self.canonical_user_id())
+        );
         debug!("Canonical Request is: {:?}", cr);
         Ok(cr)
     }
@@ -159,8 +164,14 @@ mod tests {
     #[test]
     fn test_userid() {
         let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(auth.headers().unwrap().get::<OpsUserId>().unwrap().to_string(),
-                   "spec-user")
+        assert_eq!(
+            auth.headers()
+                .unwrap()
+                .get::<OpsUserId>()
+                .unwrap()
+                .to_string(),
+            "spec-user"
+        )
     }
 
     #[test]
@@ -176,8 +187,10 @@ mod tests {
             userid: String::from(USER),
             version: String::from("1.1"),
         };
-        assert_eq!(auth.canonical_user_id().unwrap(),
-                   "EAF7Wv/hbAudWV5ZkwKz40Z/lO0=")
+        assert_eq!(
+            auth.canonical_user_id().unwrap(),
+            "EAF7Wv/hbAudWV5ZkwKz40Z/lO0="
+        )
     }
 
     #[test]
@@ -193,11 +206,13 @@ mod tests {
             userid: String::from(USER),
             version: String::from("1.1"),
         };
-        assert_eq!(auth.canonical_request().unwrap(),
-                   "Method:POST\nHashed \
-                    Path:YtBWDn1blGGuFIuKksdwXzHU9oE=\nX-Ops-Content-Hash:\
-                    DFteJZPVv6WKdQmMqZUQUumUyRs=\nX-Ops-Timestamp:2009-01-01T12:00:\
-                    00Z\nX-Ops-UserId:EAF7Wv/hbAudWV5ZkwKz40Z/lO0=")
+        assert_eq!(
+            auth.canonical_request().unwrap(),
+            "Method:POST\nHashed \
+             Path:YtBWDn1blGGuFIuKksdwXzHU9oE=\nX-Ops-Content-Hash:\
+             DFteJZPVv6WKdQmMqZUQUumUyRs=\nX-Ops-Timestamp:2009-01-01T12:00:\
+             00Z\nX-Ops-UserId:EAF7Wv/hbAudWV5ZkwKz40Z/lO0="
+        )
     }
 
     #[test]
@@ -213,13 +228,15 @@ mod tests {
             userid: String::from(USER),
             version: String::from("1.1"),
         };
-        assert_eq!(&auth.encrypted_request().unwrap(),
-                   "UfZD9dRz6rFu6LbP5Mo1oNHcWYxpNIcUfFCffJS1FQa0GtfU/vkt3/O5HuCM\n\
-                   1wIFl/U0f5faH9EWpXWY5NwKR031Myxcabw4t4ZLO69CIh/3qx1XnjcZvt2w\n\
-                   c2R9bx/43IWA/r8w8Q6decuu0f6ZlNheJeJhaYPI8piX/aH+uHBH8zTACZu8\n\
-                   vMnl5MF3/OIlsZc8cemq6eKYstp8a8KYq9OmkB5IXIX6qVMJHA6fRvQEB/7j\n\
-                   281Q7oI/O+lE8AmVyBbwruPb7Mp6s4839eYiOdjbDwFjYtbS3XgAjrHlaD7W\n\
-                   FDlbAG7H8Dmvo+wBxmtNkszhzbBnEYtuwQqT8nM/8A==")
+        assert_eq!(
+            &auth.encrypted_request().unwrap(),
+            "UfZD9dRz6rFu6LbP5Mo1oNHcWYxpNIcUfFCffJS1FQa0GtfU/vkt3/O5HuCM\n\
+             1wIFl/U0f5faH9EWpXWY5NwKR031Myxcabw4t4ZLO69CIh/3qx1XnjcZvt2w\n\
+             c2R9bx/43IWA/r8w8Q6decuu0f6ZlNheJeJhaYPI8piX/aH+uHBH8zTACZu8\n\
+             vMnl5MF3/OIlsZc8cemq6eKYstp8a8KYq9OmkB5IXIX6qVMJHA6fRvQEB/7j\n\
+             281Q7oI/O+lE8AmVyBbwruPb7Mp6s4839eYiOdjbDwFjYtbS3XgAjrHlaD7W\n\
+             FDlbAG7H8Dmvo+wBxmtNkszhzbBnEYtuwQqT8nM/8A=="
+        )
     }
 
     #[test]
