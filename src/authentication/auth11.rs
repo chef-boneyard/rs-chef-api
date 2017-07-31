@@ -1,7 +1,7 @@
 use chrono::*;
 use http_headers::*;
 use hyper::header::Headers;
-use openssl::hash::{hash, MessageDigest};
+use openssl::hash::{MessageDigest, hash2};
 use openssl::rsa::Rsa;
 use openssl::rsa::PKCS1_PADDING;
 use rustc_serialize::base64::ToBase64;
@@ -72,14 +72,14 @@ impl Auth11 {
 
     fn hashed_path(&self) -> Result<String> {
         debug!("Path is: {:?}", &self.path);
-        let hash = hash(MessageDigest::sha1(), &self.path.as_bytes())?
+        let hash = hash2(MessageDigest::sha1(), &self.path.as_bytes())?
             .to_base64(BASE64_AUTH);
         Ok(hash)
     }
 
     fn content_hash(&self) -> Result<String> {
         let body = expand_string(&self.body);
-        let content = hash(MessageDigest::sha1(), body.as_bytes())?
+        let content = hash2(MessageDigest::sha1(), body.as_bytes())?
             .to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
@@ -92,7 +92,7 @@ impl Auth11 {
     }
 
     fn canonical_user_id(&self) -> Result<String> {
-        hash(MessageDigest::sha1(), &self.userid.as_bytes())
+        hash2(MessageDigest::sha1(), &self.userid.as_bytes())
             .and_then(|res| Ok(res.to_base64(BASE64_AUTH)))
             .map_err(|res| res.into())
     }
