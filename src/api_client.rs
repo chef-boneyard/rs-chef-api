@@ -15,7 +15,7 @@ use hyper_openssl::OpensslClient;
 use std::io::Read;
 use serde_json;
 use serde::ser::Serialize;
-use serde::de::Deserialize;
+use serde::de::DeserializeOwned;
 use errors::*;
 
 #[derive(Debug,Clone)]
@@ -40,7 +40,7 @@ impl Response {
         })
     }
 
-    pub fn from_json<T: Deserialize>(&self) -> Result<T> {
+    pub fn from_json<T: DeserializeOwned>(&self) -> Result<T> {
         serde_json::from_str(&*self.body).chain_err(|| "Failed to decode json")
     }
 }
