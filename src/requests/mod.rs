@@ -16,7 +16,6 @@ macro_rules! chef_json_type {
 }
 
 pub mod node;
-pub mod clients;
 pub mod environment;
 pub mod role;
 pub mod data_bag;
