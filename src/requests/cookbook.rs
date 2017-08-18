@@ -16,19 +16,19 @@ pub struct Cookbooks {
     client: ApiClient,
 }
 
-// Struct for Cookbook Metadata 
+// Struct for Cookbook Metadata
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CookbookMetadata {
     pub cookbook_name: String,
     chef_type: String,
     pub version: String,
-    pub attributes: Vec<HashMap<String,Value>>,
+    pub attributes: Vec<HashMap<String, Value>>,
     pub metadata: HashMap<String, Value>,
-    pub recipes:  Vec<HashMap<String,Value>>,
-    providers: Vec<HashMap<String,Value>>,
-    resources: Vec<HashMap<String,Value>>,
-    templates: Vec<HashMap<String,Value>>,
-    root_files: Vec<HashMap<String,Value>>,
+    pub recipes: Vec<HashMap<String, Value>>,
+    providers: Vec<HashMap<String, Value>>,
+    resources: Vec<HashMap<String, Value>>,
+    templates: Vec<HashMap<String, Value>>,
+    root_files: Vec<HashMap<String, Value>>,
     #[serde(default, rename = "frozen?")]
     pub frozen: bool,
     json_class: String,
@@ -56,10 +56,10 @@ impl Cookbooks {
     pub fn show(client: &ApiClient, name: String) -> Result<CookbookMetadata> {
         let org = &client.config.organization_path();
         let path = format!("{}/cookbooks/{}/_latest", org, name);
-        client
-            .get(path.as_ref())
-            .and_then(|r| r.from_json::<CookbookMetadata>())
-}
+        client.get(path.as_ref()).and_then(|r| {
+            r.from_json::<CookbookMetadata>()
+        })
+    }
 }
 
 // Itenarator for Cookbooks
