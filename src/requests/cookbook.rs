@@ -62,7 +62,7 @@ impl Cookbooks {
 }
 }
 
-// Itenarator for Cookbook::new
+// Itenarator for Cookbooks
 impl Iterator for Cookbooks {
     type Item = Result<CookbookMetadata>;
 
