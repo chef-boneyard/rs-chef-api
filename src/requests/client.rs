@@ -8,6 +8,7 @@ use std::io::ErrorKind as IoErrorKind;
 use utils::decode_list;
 use errors::*;
 
+// Client Structure
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Client {
     #[serde(default)]
@@ -19,6 +20,7 @@ pub struct Client {
     chef_type: String,
 }
 
+// Clients Structure
 #[derive(Debug)]
 pub struct Clients {
     count: usize,
