@@ -8,8 +8,11 @@ time = "*"
 log = "*"
 rustc-serialize = "*"
 clippy = {version = "*", optional = true}
-hyper = "0.10"
-hyper-openssl = "0.2"
+
+futures = "0.1"
+tokio-core = "0.1"
+hyper = "0.11"
+hyper-openssl = "0.3"
 
 url = "*"
 chrono = "*"

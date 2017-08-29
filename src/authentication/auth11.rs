@@ -9,16 +9,14 @@ use std::fmt;
 use std::fs::File;
 use std::io::Read;
 use utils::{expand_string, squeeze_path};
-use authentication::{Authenticator, BASE64_AUTH};
+use authentication::BASE64_AUTH;
 use errors::*;
 use std::ascii::AsciiExt;
 
-#[derive(Clone)]
 pub struct Auth11 {
     api_version: String,
     body: Option<String>,
     date: String,
-    pub headers: Headers,
     keypath: String,
     method: String,
     path: String,
@@ -46,22 +44,16 @@ impl Auth11 {
         userid: &str,
         api_version: &str,
         body: Option<String>,
-    ) -> impl Authenticator {
+    ) -> Auth11 {
         let dt = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
         let userid: String = userid.into();
         let method = String::from(method).to_ascii_uppercase();
 
-        let mut headers = Headers::new();
-        headers.set(OpsSign(String::from("algorithm=sha1;version=1.1")));
-        headers.set(OpsTimestamp(dt.clone()));
-        headers.set(OpsUserId(userid.clone()));
-
         Auth11 {
             api_version: api_version.into(),
             body: body,
             date: dt,
-            headers: headers,
             keypath: key.into(),
             method: method.into(),
             path: squeeze_path(path.into()),
@@ -72,23 +64,15 @@ impl Auth11 {
 
     fn hashed_path(&self) -> Result<String> {
         debug!("Path is: {:?}", &self.path);
-        let hash = hash2(MessageDigest::sha1(), &self.path.as_bytes())?
-            .to_base64(BASE64_AUTH);
+        let hash = hash2(MessageDigest::sha1(), &self.path.as_bytes())?.to_base64(BASE64_AUTH);
         Ok(hash)
     }
 
     fn content_hash(&self) -> Result<String> {
         let body = expand_string(&self.body);
-        let content = hash2(MessageDigest::sha1(), body.as_bytes())?
-            .to_base64(BASE64_AUTH);
+        let content = hash2(MessageDigest::sha1(), body.as_bytes())?.to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
-    }
-
-    fn set_content_hash(mut self) -> Result<Auth11> {
-        let hsh = try!(self.content_hash());
-        self.headers.set(OpsContentHash(hsh));
-        Ok(self)
     }
 
     fn canonical_user_id(&self) -> Result<String> {
@@ -129,20 +113,23 @@ impl Auth11 {
             Err(_) => Err(ErrorKind::PrivateKeyError(self.keypath.clone()).into()),
         }
     }
-}
 
-impl Authenticator for Auth11 {
-    fn headers(self) -> Result<Headers> {
-        let fin = try!(self.set_content_hash());
-        let enc = try!(fin.encrypted_request());
-        let mut headers = fin.headers;
+    pub fn build(self, mut headers: &mut Headers) -> Result<()> {
+        let hsh = try!(self.content_hash());
+        headers.set(OpsContentHash(hsh));
+
+        headers.set(OpsSign(String::from("algorithm=sha1;version=1.1")));
+        headers.set(OpsTimestamp(self.date.clone()));
+        headers.set(OpsUserId(self.userid.clone()));
+
+        let enc = try!(self.encrypted_request());
         let mut i = 1;
         for h in enc.split('\n') {
             let key = format!("X-Ops-Authorization-{}", i);
             headers.set_raw(key, vec![h.as_bytes().to_vec()]);
             i += 1;
         }
-        Ok(headers)
+        Ok(())
     }
 }
 

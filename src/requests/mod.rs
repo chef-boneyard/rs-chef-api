@@ -21,3 +21,4 @@ pub mod role;
 pub mod data_bag;
 pub mod data_bag_item;
 pub mod cookbook;
+pub mod client;

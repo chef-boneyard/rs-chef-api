@@ -10,14 +10,10 @@ chef_json_type!(DataBagChefType, "data_bag");
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DataBag {
-    #[serde(default)]
-    pub name: Option<String>,
-    #[serde(default)]
-    chef_type: DataBagChefType,
-    #[serde(default)]
-    json_class: DataBagJsonClass,
-    #[serde(default)]
-    id: Option<usize>,
+    #[serde(default)] pub name: Option<String>,
+    #[serde(default)] chef_type: DataBagChefType,
+    #[serde(default)] json_class: DataBagJsonClass,
+    #[serde(default)] id: Option<usize>,
 }
 
 impl Read for DataBag {
@@ -48,17 +44,13 @@ impl DataBag {
     pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<DataBag> {
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}", org, name.into());
-        client
-            .get(path.as_ref())
-            .and_then(|r| r.from_json::<DataBag>())
+        client.get::<DataBag>(path.as_ref())
     }
 
     pub fn save(&self, client: &ApiClient) -> Result<DataBag> {
         let org = &client.config.organization_path();
         let path = format!("{}/data", org);
-        client
-            .post(path.as_ref(), self)
-            .and_then(|r| r.from_json::<DataBag>())
+        client.post::<&DataBag, DataBag>(path.as_ref(), &self)
     }
 
     pub fn from_json<R>(r: R) -> Result<DataBag>

@@ -13,20 +13,13 @@ chef_json_type!(EnvironmentChefType, "environment");
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Environment {
-    #[serde(default)]
-    pub name: Option<String>,
-    #[serde(default)]
-    pub description: Option<String>,
-    #[serde(default)]
-    chef_type: EnvironmentChefType,
-    #[serde(default)]
-    json_class: EnvironmentJsonClass,
-    #[serde(default)]
-    pub cookbook_versions: HashMap<String, Value>,
-    #[serde(default)]
-    pub default_attributes: HashMap<String, Value>,
-    #[serde(default, rename = "override")]
-    pub override_attributes: HashMap<String, Value>,
+    #[serde(default)] pub name: Option<String>,
+    #[serde(default)] pub description: Option<String>,
+    #[serde(default)] chef_type: EnvironmentChefType,
+    #[serde(default)] json_class: EnvironmentJsonClass,
+    #[serde(default)] pub cookbook_versions: HashMap<String, String>,
+    #[serde(default)] pub default_attributes: HashMap<String, Value>,
+    #[serde(default, rename = "override")] pub override_attributes: HashMap<String, Value>,
 }
 
 impl Read for Environment {
@@ -44,7 +37,7 @@ impl Read for Environment {
 }
 
 impl Environment {
-    pub fn new<S>(name: S) -> Environment
+    pub fn new<S>(name: S) -> Self
     where
         S: Into<String>,
     {
@@ -57,27 +50,21 @@ impl Environment {
     pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Environment> {
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name.into());
-        client
-            .get(path.as_ref())
-            .and_then(|r| r.from_json::<Environment>())
+        client.get::<Environment>(path.as_ref())
     }
 
     pub fn save(&self, client: &ApiClient) -> Result<Environment> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name);
-        client
-            .put(path.as_ref(), self)
-            .and_then(|r| r.from_json::<Environment>())
+        client.put::<&Environment, Environment>(path.as_ref(), &self)
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<Environment> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name);
-        client
-            .delete(path.as_ref())
-            .and_then(|r| r.from_json::<Environment>())
+        client.delete::<Environment>(path.as_ref())
     }
 
     pub fn from_json<R>(r: R) -> Result<Environment>
@@ -91,9 +78,7 @@ impl Environment {
 pub fn delete_environment(client: &ApiClient, name: &str) -> Result<Environment> {
     let org = &client.config.organization_path();
     let path = format!("{}/environments/{}", org, name);
-    client
-        .delete(path.as_ref())
-        .and_then(|r| r.from_json::<Environment>())
+    client.delete::<Environment>(path.as_ref())
 }
 
 #[derive(Debug)]
@@ -104,7 +89,7 @@ pub struct EnvironmentList {
 }
 
 impl EnvironmentList {
-    pub fn new(client: &ApiClient) -> EnvironmentList {
+    pub fn new(client: &ApiClient) -> Self {
         let org = &client.config.organization_path();
         let path = format!("{}/environments", org);
         client
@@ -128,7 +113,7 @@ impl Iterator for EnvironmentList {
         self.environments.len()
     }
 
-    fn next(&mut self) -> Option<Result<Environment>> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.environments.len() >= 1 {
             Some(Environment::fetch(
                 &self.client,

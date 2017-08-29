@@ -1,6 +1,4 @@
-use api_client::Response;
 use errors::*;
-use serde_json;
 use serde_json::Value;
 
 pub fn expand_string(val: &Option<String>) -> String {
@@ -28,19 +26,15 @@ pub fn squeeze_path(pth: String) -> String {
 /// [ "name", "https://chef.local/type/name"]
 /// In general, we don't care about the URL, so just return
 /// a list of the names
-pub fn decode_list(r: Response) -> Result<Vec<String>> {
-    let data: Result<Value> = serde_json::from_str(&*r.body).map_err(|err| err.into());
-    match data {
-        Ok(data) => if let Some(obj) = data.as_object() {
-            let mut resp = vec![];
-            for (key, _) in obj.iter() {
-                resp.push(key.clone());
-            }
-            Ok(resp)
-        } else {
-            Err(ErrorKind::ListError.into())
-        },
-        Err(e) => Err(e.into()),
+pub fn decode_list(data: Value) -> Result<Vec<String>> {
+    if let Some(obj) = data.as_object() {
+        let mut resp = vec![];
+        for (key, _) in obj.iter() {
+            resp.push(key.clone());
+        }
+        Ok(resp)
+    } else {
+        Err(ErrorKind::ListError.into())
     }
 }
 
