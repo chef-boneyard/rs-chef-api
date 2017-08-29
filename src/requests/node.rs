@@ -117,15 +117,15 @@ impl Iterator for NodeList {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::Node;
-    use std::fs::File;
+// #[cfg(test)]
+// mod tests {
+//     use super::Node;
+//     use std::fs::File;
 
-    #[test]
-    fn test_node_from_file() {
-        let fh = File::open("fixtures/node.json").unwrap();
-        let node = Node::from_json(fh).unwrap();
-        assert_eq!(node.name.unwrap(), "test")
-    }
-}
+//     #[test]
+//     fn test_node_from_file() {
+//         let fh = File::open("fixtures/node.json").unwrap();
+//         let node = Node::from_json(fh).unwrap();
+//         assert_eq!(node.name.unwrap(), "test")
+//     }
+// }

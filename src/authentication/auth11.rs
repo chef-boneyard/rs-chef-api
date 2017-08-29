@@ -14,14 +14,13 @@ use errors::*;
 use std::ascii::AsciiExt;
 
 pub struct Auth11 {
-    api_version: String,
+    #[allow(dead_code)] api_version: String,
     body: Option<String>,
     date: String,
     keypath: String,
     method: String,
     path: String,
     userid: String,
-    version: String,
 }
 
 impl fmt::Debug for Auth11 {
@@ -58,7 +57,6 @@ impl Auth11 {
             method: method.into(),
             path: squeeze_path(path.into()),
             userid: userid,
-            version: String::from("1.1"),
         }
     }
 
@@ -114,7 +112,7 @@ impl Auth11 {
         }
     }
 
-    pub fn build(self, mut headers: &mut Headers) -> Result<()> {
+    pub fn build(self, headers: &mut Headers) -> Result<()> {
         let hsh = try!(self.content_hash());
         headers.set(OpsContentHash(hsh));
 
@@ -137,10 +135,6 @@ impl Auth11 {
 mod tests {
     use super::Auth11;
 
-    use authentication::Authenticator;
-    use http_headers::*;
-    use hyper::header::Headers;
-
     const PATH: &'static str = "/organizations/clownco";
     const BODY: &'static str = "Spec Body";
     const USER: &'static str = "spec-user";
@@ -149,30 +143,15 @@ mod tests {
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
     #[test]
-    fn test_userid() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(
-            auth.headers()
-                .unwrap()
-                .get::<OpsUserId>()
-                .unwrap()
-                .to_string(),
-            "spec-user"
-        )
-    }
-
-    #[test]
     fn test_canonical_user_id() {
         let auth = Auth11 {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            headers: Headers::new(),
             keypath: String::from(PRIVATE_KEY),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
-            version: String::from("1.1"),
         };
         assert_eq!(
             auth.canonical_user_id().unwrap(),
@@ -186,12 +165,10 @@ mod tests {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            headers: Headers::new(),
             keypath: String::from(""),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
-            version: String::from("1.1"),
         };
         assert_eq!(
             auth.canonical_request().unwrap(),
@@ -208,12 +185,10 @@ mod tests {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            headers: Headers::new(),
             keypath: String::from(PRIVATE_KEY),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
-            version: String::from("1.1"),
         };
         assert_eq!(
             &auth.encrypted_request().unwrap(),
@@ -226,11 +201,4 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_headers() {
-        let auth = Auth11::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        let headers = auth.headers().unwrap();
-
-        assert!(headers.get_raw("x-ops-authorization-1").is_some())
-    }
 }

@@ -61,15 +61,10 @@ impl ApiClient {
         self.send_with_body(path, body, "put")
     }
 
-    fn send_with_body<B, T> (
-        &self,
-        path: &str,
-        body: &B,
-        method: &str,
-    ) -> Result<T> 
-    where 
-    B: Serialize,
-    T: DeserializeOwned
+    fn send_with_body<B, T>(&self, path: &str, body: &B, method: &str) -> Result<T>
+    where
+        B: Serialize,
+        T: DeserializeOwned,
     {
         let userid = self.config.user.clone().unwrap();
         let keypath = self.config.keypath.clone().unwrap();
@@ -90,10 +85,22 @@ impl ApiClient {
         let body = try!(serde_json::to_string(&body));
 
         match sign_ver.as_str() {
-            "1.1" => Auth11::new(path, &keypath, method, &userid, "1", Some(body.clone().into()))
-                .build(request.headers_mut())?,
-            _ => Auth13::new(path, &keypath, method, &userid, "1", Some(body.clone().into()))
-                .build(request.headers_mut())?,
+            "1.1" => Auth11::new(
+                path,
+                &keypath,
+                method,
+                &userid,
+                "1",
+                Some(body.clone().into()),
+            ).build(request.headers_mut())?,
+            _ => Auth13::new(
+                path,
+                &keypath,
+                method,
+                &userid,
+                "1",
+                Some(body.clone().into()),
+            ).build(request.headers_mut())?,
         };
 
         let mut core = Core::new()?;
@@ -105,7 +112,9 @@ impl ApiClient {
         let json = APPLICATION_JSON;
         request.headers_mut().set(Accept(vec![qitem(json.clone())]));
         request.headers_mut().set(ContentType::json());
-        request.headers_mut().set(ContentLength(body.clone().len() as u64));
+        request
+            .headers_mut()
+            .set(ContentLength(body.clone().len() as u64));
         request.headers_mut().set(OpsApiInfo(1));
         request.headers_mut().set(OpsApiVersion(1));
         request

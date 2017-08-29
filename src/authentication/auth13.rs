@@ -21,7 +21,6 @@ pub struct Auth13 {
     method: String,
     path: String,
     userid: String,
-    version: String,
 }
 
 impl fmt::Debug for Auth13 {
@@ -58,7 +57,6 @@ impl Auth13 {
             method: method.into(),
             path: squeeze_path(path.into()),
             userid: userid,
-            version: String::from("1.3"),
         }
     }
 
@@ -105,7 +103,7 @@ impl Auth13 {
         }
     }
 
-    pub fn build(self, mut headers: &mut Headers) -> Result<()> {
+    pub fn build(self, headers: &mut Headers) -> Result<()> {
         let hsh = self.content_hash()?;
         headers.set(OpsContentHash(hsh));
         headers.set(OpsSign(String::from("algorithm=sha256;version=1.3")));
@@ -126,10 +124,6 @@ impl Auth13 {
 #[cfg(test)]
 mod tests {
     use super::Auth13;
-    use authentication::Authenticator;
-
-    use http_headers::*;
-    use hyper::header::Headers;
 
     use openssl::hash::MessageDigest;
     use openssl::sign::Verifier;
@@ -146,30 +140,15 @@ mod tests {
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
     #[test]
-    fn test_userid() {
-        let auth = Auth13::new(PATH, PRIVATE_KEY, "GET", USER, "0", None);
-        assert_eq!(
-            auth.headers()
-                .unwrap()
-                .get::<OpsUserId>()
-                .unwrap()
-                .to_string(),
-            "spec-user"
-        )
-    }
-
-    #[test]
     fn test_canonical_request() {
         let auth = Auth13 {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            headers: Headers::new(),
             keypath: String::from(PRIVATE_KEY),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
-            version: String::from("1.3"),
         };
         assert_eq!(
             auth.canonical_request().unwrap(),
@@ -186,12 +165,10 @@ mod tests {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            headers: Headers::new(),
             keypath: String::from(PRIVATE_KEY),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
-            version: String::from("1.3"),
         };
         let sig = &auth.signed_request().unwrap();
         let req = &auth.canonical_request().unwrap();
@@ -217,18 +194,4 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_headers() {
-        let auth = Auth13::new(
-            PATH,
-            PRIVATE_KEY,
-            "GET",
-            USER,
-            "1",
-            Some(String::from(BODY)),
-        );
-        let headers = auth.headers().unwrap();
-
-        assert!(headers.get_raw("x-ops-authorization-1").is_some())
-    }
 }
