@@ -22,10 +22,10 @@ pub struct Environment {
     #[serde(default)]
     json_class: EnvironmentJsonClass,
     #[serde(default)]
-    pub cookbook_versions: HashMap<String, Value>,
+    pub cookbook_versions: HashMap<String, String>,
     #[serde(default)]
     pub default_attributes: HashMap<String, Value>,
-    #[serde(default, rename = "override")]
+    #[serde(default)]
     pub override_attributes: HashMap<String, Value>,
 }
 
@@ -57,27 +57,27 @@ impl Environment {
     pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Environment> {
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name.into());
-        client
-            .get(path.as_ref())
-            .and_then(|r| r.from_json::<Environment>())
+        client.get(path.as_ref()).and_then(
+            |r| r.from_json::<Environment>(),
+        )
     }
 
     pub fn save(&self, client: &ApiClient) -> Result<Environment> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name);
-        client
-            .put(path.as_ref(), self)
-            .and_then(|r| r.from_json::<Environment>())
+        client.put(path.as_ref(), self).and_then(|r| {
+            r.from_json::<Environment>()
+        })
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<Environment> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name);
-        client
-            .delete(path.as_ref())
-            .and_then(|r| r.from_json::<Environment>())
+        client.delete(path.as_ref()).and_then(
+            |r| r.from_json::<Environment>(),
+        )
     }
 
     pub fn from_json<R>(r: R) -> Result<Environment>
@@ -91,9 +91,9 @@ impl Environment {
 pub fn delete_environment(client: &ApiClient, name: &str) -> Result<Environment> {
     let org = &client.config.organization_path();
     let path = format!("{}/environments/{}", org, name);
-    client
-        .delete(path.as_ref())
-        .and_then(|r| r.from_json::<Environment>())
+    client.delete(path.as_ref()).and_then(
+        |r| r.from_json::<Environment>(),
+    )
 }
 
 #[derive(Debug)]
