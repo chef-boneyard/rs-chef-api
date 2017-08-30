@@ -1,6 +1,4 @@
 use rustc_serialize::base64::{CharacterSet, Config, Newline};
-use hyper::header::Headers;
-use errors::*;
 
 pub mod auth11;
 pub mod auth13;
@@ -11,7 +9,3 @@ pub static BASE64_AUTH: Config = Config {
     pad: true,
     line_length: Some(60),
 };
-
-pub trait Authenticator {
-    fn headers(self) -> Result<Headers>;
-}

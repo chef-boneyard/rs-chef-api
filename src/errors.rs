@@ -3,7 +3,6 @@ use std;
 use serde_json;
 use url;
 use hyper;
-use api_client::Response;
 
 error_chain! {
     foreign_links {
@@ -11,6 +10,7 @@ error_chain! {
         IOError(std::io::Error);
         JsonError(serde_json::Error);
         UrlParseError(url::ParseError);
+        UriError(hyper::error::UriError);
         HTTPError(hyper::error::Error);
     }
 
@@ -21,9 +21,6 @@ error_chain! {
         }
         ListError {
             description("Failed to interpret a list of items")
-        }
-        UnsuccessfulResponse(resp: Response) {
-            description("Got a bad response from the Chef Server")
         }
         KeyMissingError(field: String) {
             description("Failed to fetch field from JSON")

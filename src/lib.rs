@@ -1,7 +1,6 @@
 #![cfg_attr(feature = "dev", allow(unstable_features))]
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
-#![feature(conservative_impl_trait)]
 // #![deny(missing_docs,
 //         missing_debug_implementations, missing_copy_implementations,
 //         trivial_casts, trivial_numeric_casts,
@@ -12,21 +11,24 @@
 #[macro_use]
 extern crate error_chain;
 
+extern crate chrono;
 extern crate openssl;
 extern crate rustc_serialize;
-extern crate chrono;
 extern crate url;
+
+extern crate futures;
 
 #[macro_use]
 extern crate hyper;
 extern crate hyper_openssl;
+extern crate tokio_core;
 
 #[macro_use]
 extern crate log;
 
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
 extern crate serde_json;
 
 pub use errors::*;

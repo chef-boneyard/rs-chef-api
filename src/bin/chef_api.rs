@@ -1,8 +1,8 @@
 extern crate chef_api;
 
+extern crate env_logger;
 #[macro_use]
 extern crate log;
-extern crate env_logger;
 
 use chef_api::api_client::ApiClient;
 use chef_api::requests::node::*;
@@ -10,11 +10,11 @@ use chef_api::requests::node::*;
 
 pub fn main() {
     env_logger::init().unwrap();
-    let client = ApiClient::from_json_config("/Users/thom/.chef/knife.json");
-    // let node = Node::fetch(&client, "spincycle_jenkins");
+    let client = ApiClient::from_json_config("/Users/thom/.chef/knife.json").unwrap();
+    let node = Node::fetch(&client, "data_bag_test");
 
-    // let output = node.unwrap();
-    // info!("{:?}", output);
+    let output = node.unwrap();
+    info!("{:?}", output);
 
 
     // let fh = File::open("fixtures/node.json").unwrap();
@@ -30,5 +30,4 @@ pub fn main() {
     for n in nodes {
         println!("{:?}", n.unwrap().name)
     }
-
 }

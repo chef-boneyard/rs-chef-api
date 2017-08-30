@@ -1,18 +1,18 @@
-use authentication::Authenticator;
 use authentication::auth11::Auth11;
 use authentication::auth13::Auth13;
 use config::Config;
 use http_headers::*;
-use hyper::client::Response as HyperResponse;
+
 use hyper::Client as HyperClient;
-use hyper::header::{qitem, Accept, ContentType};
-use hyper::method::Method;
-use hyper::mime::{Mime, SubLevel, TopLevel};
-use hyper::client::IntoUrl;
-use hyper::header::Headers;
-use hyper::net::HttpsConnector;
-use hyper_openssl::OpensslClient;
-use std::io::Read;
+use hyper::header::{qitem, Accept, ContentLength, ContentType};
+use hyper::{Method, Request};
+use hyper::mime::APPLICATION_JSON;
+use hyper_openssl::HttpsConnector;
+
+use tokio_core::reactor::Core;
+use futures::{Future, Stream};
+
+use std::io;
 use serde_json;
 use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
@@ -23,84 +23,54 @@ pub struct ApiClient {
     pub config: Config,
 }
 
-#[derive(Debug)]
-pub struct Response {
-    pub hyper_response: HyperResponse,
-    pub body: String,
-}
-
-impl Response {
-    fn from_hyper_response(mut hyper_response: HyperResponse) -> Result<Response> {
-        let mut body = String::new();
-        hyper_response
-            .read_to_string(&mut body)
-            .map_err(|e| e.into())
-            .map(|_| {
-                Response {
-                    hyper_response: hyper_response,
-                    body: body,
-                }
-            })
-    }
-
-    pub fn from_json<T: DeserializeOwned>(&self) -> Result<T> {
-        serde_json::from_str(&*self.body).chain_err(|| "Failed to decode json")
-    }
-}
-
 impl ApiClient {
-    pub fn new(config: Config) -> ApiClient {
+    pub fn new(config: Config) -> Self {
         ApiClient { config: config }
     }
 
-    pub fn from_json_config(pth: &str) -> ApiClient {
-        Config::from_json(pth).map(ApiClient::new).unwrap()
+    pub fn from_json_config(pth: &str) -> Result<Self> {
+        Config::from_json(pth).map(ApiClient::new)
     }
 
-    pub fn config(mut self, config: Config) -> ApiClient {
+    pub fn config(mut self, config: Config) -> Self {
         self.config = config;
         self
     }
 
-    pub fn get(&self, path: &str) -> Result<Response> {
-        self.send_with_body(path, "", "get")
+    pub fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
+        self.send_with_body(path, &String::from(""), "get")
     }
 
-    pub fn delete(&self, path: &str) -> Result<Response> {
-        self.send_with_body(path, "", "delete")
+    pub fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
+        self.send_with_body(path, &String::from(""), "delete")
     }
 
-    pub fn post<B>(&self, path: &str, body: B) -> Result<Response>
+    pub fn post<B, T>(&self, path: &str, body: &B) -> Result<T>
     where
         B: Serialize,
+        T: DeserializeOwned,
     {
-        let body = try!(serde_json::to_string(&body));
-        self.send_with_body(path, body.as_ref(), "post")
+        self.send_with_body(path, body, "post")
     }
 
-    pub fn put<B>(&self, path: &str, body: B) -> Result<Response>
+    pub fn put<B, T>(&self, path: &str, body: &B) -> Result<T>
     where
         B: Serialize,
+        T: DeserializeOwned,
     {
-        let body = try!(serde_json::to_string(&body));
-        self.send_with_body(path, body.as_ref(), "put")
+        self.send_with_body(path, body, "put")
     }
 
-    fn send_with_body(&self, path: &str, body: &str, method: &str) -> Result<Response> {
+    fn send_with_body<B, T>(&self, path: &str, body: &B, method: &str) -> Result<T>
+    where
+        B: Serialize,
+        T: DeserializeOwned,
+    {
         let userid = self.config.user.clone().unwrap();
         let keypath = self.config.keypath.clone().unwrap();
         let sign_ver = self.config.sign_ver.clone();
 
-        let headers: Headers = match sign_ver.as_str() {
-            "1.1" => {
-                try!(Auth11::new(path, &keypath, method, &userid, "1", Some(body.into())).headers())
-            }
-            _ => {
-                try!(Auth13::new(path, &keypath, method, &userid, "1", Some(body.into())).headers())
-            }
-        };
-
-        let url = try!(format!("{}{}", &self.config.url_base(), path).into_url());
+        let url = try!(format!("{}{}", &self.config.url_base(), path).parse());
 
         let mth = match method {
             "put" => Method::Put,
@@ -110,30 +80,56 @@ impl ApiClient {
             _ => Method::Get,
         };
 
-        let ssl = OpensslClient::new().unwrap();
-        let connector = HttpsConnector::new(ssl);
-        let client = HyperClient::with_connector(connector);
-        let client = client.request(mth, url);
-        let client = client.body(body.as_bytes());
+        let mut request = Request::new(mth, url);
 
-        let mut headers = headers.clone();
+        let body = try!(serde_json::to_string(&body));
 
-        let json = Mime(TopLevel::Application, SubLevel::Json, vec![]);
-        headers.set(Accept(vec![qitem(json.clone())]));
-        headers.set(ContentType(json));
-        headers.set(OpsApiInfo(1));
-        headers.set(OpsApiVersion(1));
-        headers.set(ChefVersion(String::from("12.5.1")));
+        match sign_ver.as_str() {
+            "1.1" => Auth11::new(
+                path,
+                &keypath,
+                method,
+                &userid,
+                "1",
+                Some(body.clone().into()),
+            ).build(request.headers_mut())?,
+            _ => Auth13::new(
+                path,
+                &keypath,
+                method,
+                &userid,
+                "1",
+                Some(body.clone().into()),
+            ).build(request.headers_mut())?,
+        };
 
-        let client = client.headers(headers);
+        let mut core = Core::new()?;
+        let client = HyperClient::configure()
+            .connector(HttpsConnector::new(4, &core.handle())?)
+            .build(&core.handle());
 
-        let resp = try!(client.send());
-        let resp = try!(Response::from_hyper_response(resp));
 
-        if resp.hyper_response.status.is_success() {
-            Ok(resp)
-        } else {
-            Err(ErrorKind::UnsuccessfulResponse(resp).into())
-        }
+        let json = APPLICATION_JSON;
+        request.headers_mut().set(Accept(vec![qitem(json.clone())]));
+        request.headers_mut().set(ContentType::json());
+        request
+            .headers_mut()
+            .set(ContentLength(body.clone().len() as u64));
+        request.headers_mut().set(OpsApiInfo(1));
+        request.headers_mut().set(OpsApiVersion(1));
+        request
+            .headers_mut()
+            .set(ChefVersion(String::from("13.3.34")));
+
+        request.set_body(body);
+
+        let resp = client.request(request).and_then(|res| {
+            res.body().concat2().and_then(move |body| {
+                serde_json::from_slice(&body)
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e).into())
+            })
+        });
+
+        core.run(resp).map_err(|e| e.into())
     }
 }

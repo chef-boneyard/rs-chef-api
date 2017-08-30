@@ -14,14 +14,10 @@ chef_json_type!(DataBagItemChefType, "data_bag_item");
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DataBagItem {
     id: Option<String>,
-    #[serde(default)]
-    data_bag: Option<String>,
-    #[serde(default)]
-    chef_type: DataBagItemChefType,
-    #[serde(default)]
-    json_class: DataBagItemJsonClass,
-    #[serde(default)]
-    pub raw_data: HashMap<String, Value>,
+    #[serde(default)] data_bag: Option<String>,
+    #[serde(default)] chef_type: DataBagItemChefType,
+    #[serde(default)] json_class: DataBagItemJsonClass,
+    #[serde(default)] pub raw_data: HashMap<String, Value>,
 }
 
 impl Read for DataBagItem {
@@ -39,7 +35,7 @@ impl Read for DataBagItem {
 }
 
 impl DataBagItem {
-    pub fn new<N, D>(id: N, data_bag: D) -> DataBagItem
+    pub fn new<N, D>(id: N, data_bag: D) -> Self
     where
         N: Into<String>,
         D: Into<String>,
@@ -58,9 +54,7 @@ impl DataBagItem {
     {
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}/{}", org, data_bag.into(), id.into());
-        client
-            .get(path.as_ref())
-            .and_then(|r| r.from_json::<DataBagItem>())
+        client.get::<DataBagItem>(path.as_ref())
     }
 
     pub fn id(&self) -> Result<String> {
@@ -76,9 +70,7 @@ impl DataBagItem {
         let data_bag = &self.data_bag.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}/{}", org, data_bag, id);
-        client
-            .put(path.as_ref(), self)
-            .and_then(|r| r.from_json::<DataBagItem>())
+        client.put::<&DataBagItem, DataBagItem>(path.as_ref(), &self)
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<DataBagItem> {
@@ -86,9 +78,7 @@ impl DataBagItem {
         let data_bag = &self.data_bag.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/data/{}/{}", org, data_bag, id);
-        client
-            .delete(path.as_ref())
-            .and_then(|r| r.from_json::<DataBagItem>())
+        client.delete::<DataBagItem>(path.as_ref())
     }
 
     pub fn from_json<R>(r: R) -> Result<DataBagItem>
@@ -106,9 +96,7 @@ where
 {
     let org = &client.config.organization_path();
     let path = format!("{}/data/{}/{}", org, data_bag.into(), id.into());
-    client
-        .delete(path.as_ref())
-        .and_then(|r| r.from_json::<DataBagItem>())
+    client.delete::<DataBagItem>(path.as_ref())
 }
 
 #[derive(Debug)]
@@ -120,7 +108,7 @@ pub struct DataBagItemList {
 }
 
 impl DataBagItemList {
-    pub fn new<D: Into<String>>(client: &ApiClient, data_bag: D) -> DataBagItemList {
+    pub fn new<D: Into<String>>(client: &ApiClient, data_bag: D) -> Self {
         let org = &client.config.organization_path();
         let db = data_bag.into();
         let path = format!("{}/data/{}", org, &db);
@@ -146,8 +134,7 @@ impl Iterator for DataBagItemList {
         self.data_bag_items.len()
     }
 
-    fn next(&mut self) -> Option<Result<DataBagItem>> {
-
+    fn next(&mut self) -> Option<Self::Item> {
         if self.data_bag_items.len() >= 1 {
             Some(DataBagItem::fetch(
                 &self.client,
