@@ -25,7 +25,8 @@ pub struct CookbookMetadata {
     resources: Vec<HashMap<String, Value>>,
     templates: Vec<HashMap<String, Value>>,
     root_files: Vec<HashMap<String, Value>>,
-    #[serde(default, rename = "frozen?")] pub frozen: bool,
+    #[serde(default, rename = "frozen?")]
+    pub frozen: bool,
     json_class: String,
 }
 
@@ -55,7 +56,7 @@ impl Cookbooks {
     }
     pub fn version(client: &ApiClient, name: String, version: String) -> Result<CookbookMetadata> {
         let org = &client.config.organization_path();
-        let path = format!("{}/cookbooks/{}/{}", org, name,version);
+        let path = format!("{}/cookbooks/{}/{}", org, name, version);
         client.get::<CookbookMetadata>(path.as_ref())
     }
 }
