@@ -51,6 +51,16 @@ impl Clients {
             })
             .unwrap()
     }
+    pub fn show(client: &ApiClient, name: String) -> Result<Client> {
+        let org = &client.config.organization_path();
+        let path = format!("{}/clients/{}", org, name);
+        client.get(path.as_ref())
+    }
+    pub fn delete(client: &ApiClient, name: String) -> Result<Client> {
+        let org = &client.config.organization_path();
+        let path = format!("{}/clients/{}", org, name);
+        client.delete(path.as_ref())
+    }
 }
 
 // Itenarator for Clients
