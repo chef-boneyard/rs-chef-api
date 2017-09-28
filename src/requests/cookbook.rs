@@ -1,11 +1,7 @@
 use api_client::ApiClient;
-use serde_json;
-use serde_json::Value;
-use std::collections::HashMap;
-use std::io;
-use std::io::{Cursor, Read};
-use std::io::ErrorKind as IoErrorKind;
 use utils::decode_list;
+use serde_json::value::Value;
+use std::collections::hash_map::HashMap;
 use errors::*;
 
 // Struct for Cookbook List from /_latest URL
@@ -29,8 +25,7 @@ pub struct CookbookMetadata {
     resources: Vec<HashMap<String, Value>>,
     templates: Vec<HashMap<String, Value>>,
     root_files: Vec<HashMap<String, Value>>,
-    #[serde(default, rename = "frozen?")]
-    pub frozen: bool,
+    #[serde(default, rename = "frozen?")] pub frozen: bool,
     json_class: String,
 }
 
@@ -56,9 +51,7 @@ impl Cookbooks {
     pub fn show(client: &ApiClient, name: String) -> Result<CookbookMetadata> {
         let org = &client.config.organization_path();
         let path = format!("{}/cookbooks/{}/_latest", org, name);
-        client.get(path.as_ref()).and_then(|r| {
-            r.from_json::<CookbookMetadata>()
-        })
+        client.get::<CookbookMetadata>(path.as_ref())
     }
     pub fn version(client: &ApiClient, name: String, version: String) -> Result<CookbookMetadata> {
         let org = &client.config.organization_path();

@@ -13,20 +13,13 @@ chef_json_type!(RoleChefType, "role");
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Role {
-    #[serde(default)]
-    pub name: Option<String>,
-    #[serde(default)]
-    pub description: Option<String>,
-    #[serde(default)]
-    chef_type: RoleChefType,
-    #[serde(default)]
-    json_class: RoleJsonClass,
-    #[serde(default)]
-    pub run_list: Vec<String>,
-    #[serde(default)]
-    pub default_attributes: HashMap<String, Value>,
-    #[serde(default)]
-    pub override_attributes: HashMap<String, Value>,
+    #[serde(default)] pub name: Option<String>,
+    #[serde(default)] pub description: Option<String>,
+    #[serde(default)] chef_type: RoleChefType,
+    #[serde(default)] json_class: RoleJsonClass,
+    #[serde(default)] pub run_list: Vec<String>,
+    #[serde(default)] pub default_attributes: HashMap<String, Value>,
+    #[serde(default)] pub override_attributes: HashMap<String, Value>,
 }
 
 impl Read for Role {
@@ -44,7 +37,7 @@ impl Read for Role {
 }
 
 impl Role {
-    pub fn new<S>(name: S) -> Role
+    pub fn new<S>(name: S) -> Self
     where
         S: Into<String>,
     {
@@ -57,27 +50,21 @@ impl Role {
     pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Role> {
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name.into());
-        client
-            .get(path.as_ref())
-            .and_then(|r| r.from_json::<Role>())
+        client.get::<Role>(path.as_ref())
     }
 
     pub fn save(&self, client: &ApiClient) -> Result<Role> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name);
-        client
-            .put(path.as_ref(), self)
-            .and_then(|r| r.from_json::<Role>())
+        client.put::<&Role, Role>(path.as_ref(), &self)
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<Role> {
         let name = &self.name.clone().unwrap();
         let org = &client.config.organization_path();
         let path = format!("{}/roles/{}", org, name);
-        client
-            .delete(path.as_ref())
-            .and_then(|r| r.from_json::<Role>())
+        client.delete::<Role>(path.as_ref())
     }
 
     pub fn from_json<R>(r: R) -> Result<Role>
@@ -91,9 +78,7 @@ impl Role {
 pub fn delete_role(client: &ApiClient, name: &str) -> Result<Role> {
     let org = &client.config.organization_path();
     let path = format!("{}/roles/{}", org, name);
-    client
-        .delete(path.as_ref())
-        .and_then(|r| r.from_json::<Role>())
+    client.delete::<Role>(path.as_ref())
 }
 
 #[derive(Debug)]
@@ -104,7 +89,7 @@ pub struct RoleList {
 }
 
 impl RoleList {
-    pub fn new(client: &ApiClient) -> RoleList {
+    pub fn new(client: &ApiClient) -> Self {
         let org = &client.config.organization_path();
         let path = format!("{}/roles", org);
         client
@@ -128,7 +113,7 @@ impl Iterator for RoleList {
         self.roles.len()
     }
 
-    fn next(&mut self) -> Option<Result<Role>> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.roles.len() >= 1 {
             Some(Role::fetch(&self.client, self.roles.remove(0)))
         } else {

@@ -6,7 +6,7 @@ use std::env;
 use std::fs::File;
 use errors::*;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Config {
     pub endpoint: Option<Url>,
     pub user: Option<String>,
@@ -15,7 +15,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Config {
+    pub fn new() -> Self {
         Config {
             sign_ver: String::from("1.3"),
             ..Default::default()
@@ -23,7 +23,7 @@ impl Config {
     }
 
     /// Load a configuration file from JSON
-    pub fn from_json(path: &str) -> Result<Config> {
+    pub fn from_json(path: &str) -> Result<Self> {
         let path = get_absolute_path(path);
         let fh = try!(File::open(&path));
         let val: Value = try!(serde_json::from_reader(fh));
