@@ -19,7 +19,7 @@ pub struct Environment {
     #[serde(default)] json_class: EnvironmentJsonClass,
     #[serde(default)] pub cookbook_versions: HashMap<String, String>,
     #[serde(default)] pub default_attributes: HashMap<String, Value>,
-    #[serde(default, rename = "override")] pub override_attributes: HashMap<String, Value>,
+    #[serde(default)] pub override_attributes: HashMap<String, Value>,
 }
 
 impl Read for Environment {
