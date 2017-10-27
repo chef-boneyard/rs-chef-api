@@ -59,6 +59,11 @@ impl Role {
         let path = format!("{}/roles/{}", org, name);
         client.put::<&Role, Role>(path.as_ref(), &self)
     }
+    pub fn create(&self, client: &ApiClient) -> Result<Role> {
+        let org = &client.config.organization_path();
+        let path = format!("{}/roles", org);
+        client.post::<&Role, Role>(path.as_ref(), &self)
+    }
 
     pub fn delete(&self, client: &ApiClient) -> Result<Role> {
         let name = &self.name.clone().unwrap();
