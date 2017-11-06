@@ -48,7 +48,7 @@ impl Cookbooks {
             })
             .unwrap()
     }
-    // Retrun Cookbook Metadata
+    // Return Cookbook Metadata
     pub fn show(client: &ApiClient, name: String) -> Result<CookbookMetadata> {
         let org = &client.config.organization_path();
         let path = format!("{}/cookbooks/{}/_latest", org, name);
@@ -61,8 +61,34 @@ impl Cookbooks {
     }
 }
 
+#[derive(Debug)]
+pub struct CookbooksList {
+    count: usize,
+    pub cookbooks: Vec<String>,
+    client: ApiClient,
+}
+
+
+impl CookbooksList {
+    pub fn new(client: &ApiClient) -> Self {
+        let org = &client.config.organization_path();
+        let path = format!("{}/cookbooks", org);
+        client
+            .get(path.as_ref())
+            .and_then(decode_list)
+            .and_then(|list| {
+                Ok(CookbooksList {
+                    cookbooks: list,
+                    count: 0,
+                    client: client.clone(),
+                })
+            })
+            .unwrap()
+    }
+}
+
 // Itenarator for Cookbooks
-impl Iterator for Cookbooks {
+impl Iterator for CookbooksList {
     type Item = Result<CookbookMetadata>;
 
     fn count(self) -> usize {

@@ -49,9 +49,9 @@ impl Node {
         }
     }
 
-    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Node> {
+    pub fn fetch(client: &ApiClient, name: String) -> Result<Node> {
         let org = &client.config.organization_path();
-        let path = format!("{}/nodes/{}", org, name.into());
+        let path = format!("{}/nodes/{}", org, name);
         client.get::<Node>(path.as_ref())
     }
 
@@ -79,7 +79,7 @@ pub fn delete_node(client: &ApiClient, name: &str) -> Result<Node> {
 #[derive(Debug)]
 pub struct NodeList {
     count: usize,
-    nodes: Vec<String>,
+    pub nodes: Vec<String>,
     client: ApiClient,
 }
 
