@@ -19,7 +19,7 @@ pub struct Environment {
     #[serde(default)] json_class: EnvironmentJsonClass,
     #[serde(default)] pub cookbook_versions: HashMap<String, String>,
     #[serde(default)] pub default_attributes: HashMap<String, Value>,
-    #[serde(default, rename = "override")] pub override_attributes: HashMap<String, Value>,
+    #[serde(default)] pub override_attributes: HashMap<String, Value>,
 }
 
 impl Read for Environment {
@@ -58,6 +58,11 @@ impl Environment {
         let org = &client.config.organization_path();
         let path = format!("{}/environments/{}", org, name);
         client.put::<&Environment, Environment>(path.as_ref(), &self)
+    }
+    pub fn create(&self, client: &ApiClient) -> Result<Environment> {
+        let org = &client.config.organization_path();
+        let path = format!("{}/environments", org);
+        client.post::<&Environment, Environment>(path.as_ref(), &self)
     }
 
     pub fn delete(&self, client: &ApiClient) -> Result<Environment> {
