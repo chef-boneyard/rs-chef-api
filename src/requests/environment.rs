@@ -59,6 +59,11 @@ impl Environment {
         let path = format!("{}/environments/{}", org, name);
         client.put::<&Environment, Environment>(path.as_ref(), &self)
     }
+    pub fn create(&self, client: &ApiClient) -> Result<Environment> {
+        let org = &client.config.organization_path();
+        let path = format!("{}/environments", org);
+        client.post::<&Environment, Environment>(path.as_ref(), &self)
+    }
 
     pub fn delete(&self, client: &ApiClient) -> Result<Environment> {
         let name = &self.name.clone().unwrap();
