@@ -10,8 +10,8 @@ use std::fs::File;
 use std::io::Read;
 use utils::{expand_string, squeeze_path};
 use authentication::BASE64_AUTH;
-use errors::*;
-use std::ascii::AsciiExt;
+use failure::Error;
+use errors::ChefError;
 
 pub struct Auth13 {
     api_version: String,
@@ -60,14 +60,14 @@ impl Auth13 {
         }
     }
 
-    fn content_hash(&self) -> Result<String> {
+    fn content_hash(&self) -> Result<String, Error> {
         let body = expand_string(&self.body);
         let content = hash2(MessageDigest::sha256(), body.as_bytes())?.to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
     }
 
-    fn canonical_request(&self) -> Result<String> {
+    fn canonical_request(&self) -> Result<String, Error> {
         let cr = format!(
             "Method:{}\nPath:{}\nX-Ops-Content-Hash:{}\n\
              X-Ops-Sign:version=1.3\nX-Ops-Timestamp:{}\n\
@@ -83,7 +83,7 @@ impl Auth13 {
         Ok(cr)
     }
 
-    fn signed_request(&self) -> Result<String> {
+    fn signed_request(&self) -> Result<String, Error> {
         let mut key: Vec<u8> = vec![];
         match File::open(&self.keypath) {
             Ok(mut fh) => {
@@ -99,11 +99,11 @@ impl Auth13 {
 
                 Ok(result.to_base64(BASE64_AUTH))
             }
-            Err(_) => Err(ErrorKind::PrivateKeyError(self.keypath.clone()).into()),
+            Err(_) => Err(ChefError::PrivateKeyError(self.keypath.clone()).into()),
         }
     }
 
-    pub fn build(self, headers: &mut Headers) -> Result<()> {
+    pub fn build(self, headers: &mut Headers) -> Result<(), Error> {
         let hsh = self.content_hash()?;
         headers.set(OpsContentHash(hsh));
         headers.set(OpsSign(String::from("algorithm=sha256;version=1.3")));

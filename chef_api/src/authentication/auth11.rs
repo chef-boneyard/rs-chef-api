@@ -10,8 +10,8 @@ use std::fs::File;
 use std::io::Read;
 use utils::{expand_string, squeeze_path};
 use authentication::BASE64_AUTH;
-use errors::*;
-use std::ascii::AsciiExt;
+use failure::Error;
+use errors::ChefError;
 
 pub struct Auth11 {
     #[allow(dead_code)] api_version: String,
@@ -60,26 +60,26 @@ impl Auth11 {
         }
     }
 
-    fn hashed_path(&self) -> Result<String> {
+    fn hashed_path(&self) -> Result<String, Error> {
         debug!("Path is: {:?}", &self.path);
         let hash = hash2(MessageDigest::sha1(), &self.path.as_bytes())?.to_base64(BASE64_AUTH);
         Ok(hash)
     }
 
-    fn content_hash(&self) -> Result<String> {
+    fn content_hash(&self) -> Result<String, Error> {
         let body = expand_string(&self.body);
         let content = hash2(MessageDigest::sha1(), body.as_bytes())?.to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
     }
 
-    fn canonical_user_id(&self) -> Result<String> {
+    fn canonical_user_id(&self) -> Result<String, Error> {
         hash2(MessageDigest::sha1(), &self.userid.as_bytes())
             .and_then(|res| Ok(res.to_base64(BASE64_AUTH)))
             .map_err(|res| res.into())
     }
 
-    fn canonical_request(&self) -> Result<String> {
+    fn canonical_request(&self) -> Result<String, Error> {
         let cr = format!(
             "Method:{}\nHashed Path:{}\n\
              X-Ops-Content-Hash:{}\n\
@@ -94,7 +94,7 @@ impl Auth11 {
         Ok(cr)
     }
 
-    fn encrypted_request(&self) -> Result<String> {
+    fn encrypted_request(&self) -> Result<String, Error> {
         let mut key: Vec<u8> = vec![];
         match File::open(&self.keypath) {
             Ok(mut fh) => {
@@ -108,11 +108,11 @@ impl Auth11 {
                 try!(key.private_encrypt(cr, &mut hash, PKCS1_PADDING));
                 Ok(hash.to_base64(BASE64_AUTH))
             }
-            Err(_) => Err(ErrorKind::PrivateKeyError(self.keypath.clone()).into()),
+            Err(_) => Err(ChefError::PrivateKeyError(self.keypath.clone()).into()),
         }
     }
 
-    pub fn build(self, headers: &mut Headers) -> Result<()> {
+    pub fn build(self, headers: &mut Headers) -> Result<(), Error> {
         let hsh = try!(self.content_hash());
         headers.set(OpsContentHash(hsh));
 

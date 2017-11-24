@@ -1,12 +1,13 @@
-use api_client::ApiClient;
-use serde_json;
+use chef_api::utils::decode_list;
+use chef_api::errors::*;
+
 use serde_json::Value;
 use std::collections::HashMap;
+
 use std::io;
+use serde_json;
 use std::io::{Cursor, Read};
 use std::io::ErrorKind as IoErrorKind;
-use utils::decode_list;
-use errors::*;
 
 chef_json_type!(NodeJsonClass, "Chef::Node");
 chef_json_type!(NodeChefType, "node");
@@ -39,62 +40,61 @@ impl Read for Node {
 }
 
 impl Node {
-    pub fn new<S>(name: S) -> Self
-    where
-        S: Into<String>,
-    {
-        Node {
-            name: Some(name.into()),
-            ..Default::default()
-        }
-    }
-
-    pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Node> {
-        let org = &client.config.organization_path();
-        let path = format!("{}/nodes/{}", org, name.into());
-        client.get::<Node>(path.as_ref())
-    }
-
-    pub fn save(&self, client: &ApiClient) -> Result<Node> {
-        let name = &self.name.clone().unwrap();
-        let org = &client.config.organization_path();
-        let path = format!("{}/nodes/{}", org, name);
-        client.put::<&Node, Node>(path.as_ref(), &self)
-    }
-
-    pub fn delete(&self, client: &ApiClient) -> Result<Node> {
-        let name = &self.name.clone().unwrap();
-        let org = &client.config.organization_path();
-        let path = format!("{}/nodes/{}", org, name);
-        client.delete::<Node>(path.as_ref())
+    pub fn try_from(val: Value) -> Result<Self> {
+        serde_json::from_value(val).map_err(|e| e.into())
     }
 }
+// impl Node {
+//     pub fn new<S>(name: S) -> Self
+//     where
+//         S: Into<String>,
+//     {
+//         Node {
+//             name: Some(name.into()),
+//             ..Default::default()
+//         }
+//     }
 
-pub fn delete_node(client: &ApiClient, name: &str) -> Result<Node> {
-    let org = &client.config.organization_path();
-    let path = format!("{}/nodes/{}", org, name);
-    client.delete::<Node>(path.as_ref())
-}
+//     pub fn fetch<S: Into<String>>(client: &ApiClient, name: S) -> Result<Node> {
+//         let org = &client.config.organization_path();
+//         let path = format!("{}/nodes/{}", org, name.into());
+//         client.get::<Node>(path.as_ref())
+//     }
+
+//     pub fn save(&self, client: &ApiClient) -> Result<Node> {
+//         let name = &self.name.clone().unwrap();
+//         let org = &client.config.organization_path();
+//         let path = format!("{}/nodes/{}", org, name);
+//         client.put::<&Node, Node>(path.as_ref(), &self)
+//     }
+
+//     pub fn delete(&self, client: &ApiClient) -> Result<Node> {
+//         let name = &self.name.clone().unwrap();
+//         let org = &client.config.organization_path();
+//         let path = format!("{}/nodes/{}", org, name);
+//         client.delete::<Node>(path.as_ref())
+//     }
+// }
+
+// pub fn delete_node(client: &ApiClient, name: &str) -> Result<Node> {
+//     let org = &client.config.organization_path();
+//     let path = format!("{}/nodes/{}", org, name);
+//     client.delete::<Node>(path.as_ref())
+// }
 
 #[derive(Debug)]
 pub struct NodeList {
     count: usize,
     nodes: Vec<String>,
-    client: ApiClient,
 }
 
-impl NodeList {
-    pub fn new(client: &ApiClient) -> Self {
-        let org = &client.config.organization_path();
-        let path = format!("{}/nodes", org);
-        client
-            .get(path.as_ref())
-            .and_then(decode_list)
+impl From<Value> for NodeList {
+    fn from(list: Value) -> Self {
+        decode_list(list)
             .and_then(|list| {
                 Ok(NodeList {
                     nodes: list,
                     count: 0,
-                    client: client.clone(),
                 })
             })
             .unwrap()
@@ -102,7 +102,7 @@ impl NodeList {
 }
 
 impl Iterator for NodeList {
-    type Item = Result<Node>;
+    type Item = String;
 
     fn count(self) -> usize {
         self.nodes.len()
@@ -110,7 +110,8 @@ impl Iterator for NodeList {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.nodes.len() >= 1 {
-            Some(Node::fetch(&self.client, self.nodes.remove(0)))
+            Some(self.nodes.remove(0))
+        // Some(Node::fetch(&self.client, self.nodes.remove(0)))
         } else {
             None
         }

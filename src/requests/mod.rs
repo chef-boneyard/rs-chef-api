@@ -16,9 +16,9 @@ macro_rules! chef_json_type {
 }
 
 pub mod node;
-pub mod environment;
-pub mod role;
-pub mod data_bag;
-pub mod data_bag_item;
-pub mod cookbook;
-pub mod client;
+// pub mod environment;
+// pub mod role;
+// pub mod data_bag;
+// pub mod data_bag_item;
+// pub mod cookbook;
+// pub mod client;
