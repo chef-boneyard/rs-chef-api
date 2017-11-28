@@ -1,6 +1,0 @@
-{
-  "client_key": "fixtures/spec-user.pem",
-  "node_name": "spec-user",
-  "chef_server_url": "https://api.chef.io/organizations/rs_chef_api",
-  "sign_ver": "1.1"
-}

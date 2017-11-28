@@ -1,5 +1,5 @@
 use chef_api::utils::decode_list;
-use chef_api::errors::*;
+use failure::Error;
 
 use serde_json::Value;
 use std::collections::HashMap;
@@ -40,7 +40,7 @@ impl Read for Node {
 }
 
 impl Node {
-    pub fn try_from(val: Value) -> Result<Self> {
+    pub fn try_from(val: Value) -> Result<Self, Error> {
         serde_json::from_value(val).map_err(|e| e.into())
     }
 }
@@ -90,7 +90,7 @@ pub struct NodeList {
 
 impl From<Value> for NodeList {
     fn from(list: Value) -> Self {
-        decode_list(list)
+        decode_list(&list)
             .and_then(|list| {
                 Ok(NodeList {
                     nodes: list,

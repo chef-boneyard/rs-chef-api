@@ -12,7 +12,7 @@ macro_rules! import {
         use api_client::*;
         use authentication::auth11::Auth11;
         use authentication::auth13::Auth13;
-        use config::Config;
+        use credentials::Config;
         use failure::Error;
         use http_headers::*;
         use utils::add_path_element;
@@ -75,28 +75,38 @@ macro_rules! requests {
 
         impl<'c> From<&'c ApiClient> for $n<'c> {
             fn from(api: &'c ApiClient) -> Self {
-                let path = add_path_element(api.config.organization_path(), stringify!($p));
+                let path = add_path_element(
+                    api.config.organization_path().unwrap(),
+                    stringify!($p));
                 Self {
                     config: &api.config,
                     client: &api.client,
                     core: &api.core,
                     path: path,
+                    api_version: String::from("1"),
                 }
             }
         }
 
+        execute!($n);
+    }
+}
+
+macro_rules! execute {
+    ($n:ident) => {
         impl<'e> Execute for $n<'e> {
             fn execute<B, T>(&self, body: Option<B>, method: &str) -> Result<T, Error>
                 where
                     B: Serialize,
                     T: DeserializeOwned
                     {
-                        let userid = self.config.user.clone().unwrap();
-                        let keypath = self.config.keypath.clone().unwrap();
+                        let userid = self.config.client_name()?;
+                        let key = self.config.key()?;
                         let sign_ver = self.config.sign_ver.clone();
                         let path = self.path.clone();
+                        let api_version = self.api_version.clone();
 
-                        let url = try!(format!("{}{}", &self.config.url_base(), path).parse());
+                        let url = try!(format!("{}{}", &self.config.url_base()?, path).parse());
 
                         let mth = match method {
                             "put" => Method::Put,
@@ -110,24 +120,24 @@ macro_rules! requests {
 
                         let body = match body {
                             Some(b) => serde_json::to_string(&b)?,
-                            None => String::from("")
+                            None => serde_json::to_string("")?
                         };
 
                         match sign_ver.as_str() {
                             "1.1" => Auth11::new(
                                 &path,
-                                &keypath,
+                                &key,
                                 method,
                                 &userid,
-                                "1",
+                                &api_version,
                                 Some(body.clone().into()),
                                 ).build(request.headers_mut())?,
                             _ => Auth13::new(
                                 &path,
-                                &keypath,
+                                &key,
                                 method,
                                 &userid,
-                                "1",
+                                &api_version,
                                 Some(body.clone().into()),
                                 ).build(request.headers_mut())?,
                         };
@@ -148,6 +158,8 @@ macro_rules! requests {
 
                         let client = self.client;
                         let resp = client.request(request).and_then(|res| {
+                            debug!("Status is {:?}", res.status());
+
                             res.body().concat2().and_then(move |body| {
                                 serde_json::from_slice(&body)
                                     .map_err(|e| io::Error::new(io::ErrorKind::Other, e).into())

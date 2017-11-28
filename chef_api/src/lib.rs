@@ -1,6 +1,9 @@
 #![cfg_attr(feature = "dev", allow(unstable_features))]
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
+#![cfg_attr(feature = "dev", feature(plugin))]
+#![cfg_attr(feature = "dev", plugin(stainless))]
+
 // #![deny(missing_docs,
 //         missing_debug_implementations, missing_copy_implementations,
 //         trivial_casts, trivial_numeric_casts,
@@ -8,7 +11,8 @@
 //         unstable_features,
 //         unused_import_braces, unused_qualifications)]
 extern crate failure;
-#[macro_use] extern crate failure_derive;
+#[macro_use]
+extern crate failure_derive;
 
 extern crate chrono;
 extern crate openssl;
@@ -26,7 +30,11 @@ extern crate tokio_core;
 extern crate log;
 
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
+
+extern crate toml;
 
 pub use errors::*;
 pub mod errors;
@@ -35,7 +43,7 @@ mod http_headers;
 #[macro_use]
 mod macros;
 pub mod utils;
-pub mod config;
+pub mod credentials;
 
 pub mod api_client;
 

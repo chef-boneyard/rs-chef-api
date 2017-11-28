@@ -3,6 +3,7 @@ use std;
 use serde_json;
 use url;
 use hyper;
+use toml;
 
 #[derive(Fail, Debug)]
 pub enum ChefError {
@@ -21,16 +22,15 @@ pub enum ChefError {
     HTTPError(#[cause] hyper::error::Error),
     #[fail(display = "An error occurred when using the API client: {}", _0)]
     BorrowError(#[cause] std::cell::BorrowMutError),
+    #[fail(display = "Failed to parse credentials file: {}", _0)]
+    TomlDeserializeError(#[cause] toml::de::Error),
 
     // internal errors
-    #[fail(display = "Failed to read private key at {}", _0)]
-    PrivateKeyError(String),
-    #[fail(display = "Failed to interpret a list of items")]
-    ListError,
-    #[fail(display = "Failed to fetch {} from JSON", _0)]
-    KeyMissingError(String),
-    #[fail(display = "Can't read config file at {}", _0)]
-    UnparseableConfigError(String),
-    #[fail(display = "Failed to deserialize JSON")]
-    DeserializeError,
+    #[fail(display = "Failed to read private key at {}", _0)] PrivateKeyError(String),
+    #[fail(display = "Failed to interpret a list of items")] ListError,
+    #[fail(display = "Failed to fetch {} from JSON", _0)] KeyMissingError(String),
+    #[fail(display = "Can't read config file at {}", _0)] UnparseableConfigError(String),
+    #[fail(display = "Failed to deserialize JSON")] DeserializeError,
+    #[fail(display = "Both client_name and node_name are set in the {} profile", _0)]
+    DuplicateClientNameError(String),
 }

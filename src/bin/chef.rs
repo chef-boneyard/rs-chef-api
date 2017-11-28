@@ -13,7 +13,7 @@ use std::fs::File;
 
 pub fn main() {
     env_logger::init().unwrap();
-    let client = ApiClient::from_json_config("/Users/thom/.chef/knife.json").unwrap();
+    let client = ApiClient::from_credentials(None).unwrap();
 
     let nodes = client.nodes().get();
     match nodes {

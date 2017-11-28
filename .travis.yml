@@ -1,5 +1,4 @@
 language: rust
-cache: cargo
 branches:
   only:
     master
@@ -7,8 +6,11 @@ branches:
 matrix:
   include:
     - rust: nightly
+      script: cargo test --all
     - rust: stable
+      script: cargo test --all
     - rust: beta
+      script: cargo test --all
     - env: 
         CLIPPY: enabled
       rust: nightly

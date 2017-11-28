@@ -6,18 +6,15 @@ use openssl::sign::Signer;
 use openssl::pkey::PKey;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
-use std::fs::File;
-use std::io::Read;
 use utils::{expand_string, squeeze_path};
 use authentication::BASE64_AUTH;
 use failure::Error;
-use errors::ChefError;
 
 pub struct Auth13 {
     api_version: String,
     body: Option<String>,
     date: String,
-    keypath: String,
+    key: Vec<u8>,
     method: String,
     path: String,
     userid: String,
@@ -30,7 +27,6 @@ impl fmt::Debug for Auth13 {
             .field("userid", &self.userid)
             .field("path", &self.path)
             .field("body", &self.body)
-            .field("keypath", &self.keypath)
             .finish()
     }
 }
@@ -38,7 +34,7 @@ impl fmt::Debug for Auth13 {
 impl Auth13 {
     pub fn new(
         path: &str,
-        key: &str,
+        key: &[u8],
         method: &str,
         userid: &str,
         api_version: &str,
@@ -53,17 +49,18 @@ impl Auth13 {
             api_version: api_version.into(),
             body: body,
             date: dt,
-            keypath: key.into(),
-            method: method.into(),
-            path: squeeze_path(path.into()),
+            key: key.into(),
+            method: method,
+            path: squeeze_path(path),
             userid: userid,
         }
     }
 
     fn content_hash(&self) -> Result<String, Error> {
         let body = expand_string(&self.body);
+        debug!("Content body is: {:?}", body);
         let content = hash2(MessageDigest::sha256(), body.as_bytes())?.to_base64(BASE64_AUTH);
-        debug!("{:?}", content);
+        debug!("Content hash is: {:?}", content);
         Ok(content)
     }
 
@@ -84,23 +81,17 @@ impl Auth13 {
     }
 
     fn signed_request(&self) -> Result<String, Error> {
-        let mut key: Vec<u8> = vec![];
-        match File::open(&self.keypath) {
-            Ok(mut fh) => {
-                try!(fh.read_to_end(&mut key));
-                let key = try!(PKey::private_key_from_pem(key.as_slice()));
+        let key = PKey::private_key_from_pem(self.key.as_slice())?;
 
-                let cr = try!(self.canonical_request());
-                let cr = cr.as_bytes();
+        let cr = self.canonical_request()?;
+        let cr = cr.as_bytes();
 
-                let mut signer = try!(Signer::new(MessageDigest::sha256(), &key));
-                signer.update(cr).unwrap();
-                let result = try!(signer.finish());
-
-                Ok(result.to_base64(BASE64_AUTH))
-            }
-            Err(_) => Err(ChefError::PrivateKeyError(self.keypath.clone()).into()),
-        }
+        let mut signer = Signer::new(MessageDigest::sha256(), &key)?;
+        signer.update(cr).unwrap();
+        let result = signer.finish()?;
+        let result = result.to_base64(BASE64_AUTH);
+        debug!("base64 encoded result is {:?}", result);
+        Ok(result)
     }
 
     pub fn build(self, headers: &mut Headers) -> Result<(), Error> {
@@ -139,13 +130,21 @@ mod tests {
 
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
+    fn get_key_data() -> String {
+        let mut key = String::new();
+        File::open(PRIVATE_KEY)
+            .and_then(|mut fh| fh.read_to_string(&mut key))
+            .unwrap();
+        key
+    }
+
     #[test]
     fn test_canonical_request() {
         let auth = Auth13 {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            keypath: String::from(PRIVATE_KEY),
+            key: get_key_data(),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
@@ -165,7 +164,7 @@ mod tests {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            keypath: String::from(PRIVATE_KEY),
+            key: get_key_data(),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),

@@ -7,7 +7,6 @@
 //         unsafe_code,
 //         unstable_features,
 //         unused_import_braces, unused_qualifications)]
-#![recursion_limit = "1024"]
 
 extern crate chrono;
 
@@ -17,5 +16,6 @@ extern crate serde_derive;
 extern crate serde_json;
 
 extern crate chef_api;
+extern crate failure;
 
 pub mod requests;

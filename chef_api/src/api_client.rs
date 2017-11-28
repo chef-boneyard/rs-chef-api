@@ -1,4 +1,4 @@
-use config::Config;
+use credentials::Config;
 
 use hyper::Client as HyperClient;
 use hyper::client::HttpConnector;
@@ -38,12 +38,8 @@ impl ApiClient {
         })
     }
 
-    pub fn from_json_config(pth: &str) -> Result<Self, Error> {
-        Config::from_json(pth).map(ApiClient::new)?
-    }
-
-    pub fn organization_path(&self) -> String {
-        self.config.organization_path()
+    pub fn from_credentials(profile: Option<&str>) -> Result<Self, Error> {
+        Config::from_credentials(profile).map(ApiClient::new)?
     }
 
     build!(nodes, NodesQuery);

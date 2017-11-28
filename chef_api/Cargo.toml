@@ -28,3 +28,5 @@ serde_json = "1.0"
 
 failure = "*"
 failure_derive = "*"
+
+toml = "*"
