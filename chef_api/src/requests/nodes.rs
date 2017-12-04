@@ -2,6 +2,6 @@ import!();
 requests!(NodesQuery, nodes);
 
 impl<'c> NodesQuery<'c> {
-    path!(name);
+    path!(node);
     acls!();
 }

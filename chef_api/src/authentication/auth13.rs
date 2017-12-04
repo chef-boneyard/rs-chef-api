@@ -88,7 +88,7 @@ impl Auth13 {
 
         let mut signer = Signer::new(MessageDigest::sha256(), &key)?;
         signer.update(cr).unwrap();
-        let result = signer.finish()?;
+        let result = signer.sign_to_vec()?;
         let result = result.to_base64(BASE64_AUTH);
         debug!("base64 encoded result is {:?}", result);
         Ok(result)
@@ -130,12 +130,12 @@ mod tests {
 
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
-    fn get_key_data() -> String {
+    fn get_key_data() -> Vec<u8> {
         let mut key = String::new();
         File::open(PRIVATE_KEY)
             .and_then(|mut fh| fh.read_to_string(&mut key))
             .unwrap();
-        key
+        key.into_bytes()
     }
 
     #[test]
@@ -180,7 +180,7 @@ mod tests {
 
         let mut ver = Verifier::new(MessageDigest::sha256(), &key).unwrap();
         ver.update(req.as_bytes()).unwrap();
-        assert!(ver.finish(sig_raw.as_slice()).unwrap());
+        assert!(ver.verify(sig_raw.as_slice()).unwrap());
 
         assert_eq!(
             sig,

@@ -1,8 +1,6 @@
 #![cfg_attr(feature = "dev", allow(unstable_features))]
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
-#![cfg_attr(feature = "dev", feature(plugin))]
-#![cfg_attr(feature = "dev", plugin(stainless))]
 
 // #![deny(missing_docs,
 //         missing_debug_implementations, missing_copy_implementations,
@@ -10,9 +8,8 @@
 //         unsafe_code,
 //         unstable_features,
 //         unused_import_braces, unused_qualifications)]
-extern crate failure;
 #[macro_use]
-extern crate failure_derive;
+extern crate failure;
 
 extern crate chrono;
 extern crate openssl;

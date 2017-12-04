@@ -1,6 +1,5 @@
 macro_rules! build {
     ($name:ident, $type:ident) => {
-
         pub fn $name(&self) -> $type {
             self.into()
         }
@@ -9,13 +8,13 @@ macro_rules! build {
 
 macro_rules! import {
     () => {
-        use api_client::*;
-        use authentication::auth11::Auth11;
-        use authentication::auth13::Auth13;
-        use credentials::Config;
+        use $crate::api_client::*;
+        use $crate::authentication::auth11::Auth11;
+        use $crate::authentication::auth13::Auth13;
+        use $crate::credentials::Config;
         use failure::Error;
-        use http_headers::*;
-        use utils::add_path_element;
+        use $crate::http_headers::*;
+        use $crate::utils::add_path_element;
 
         use serde_json;
         use serde::de::DeserializeOwned;
@@ -38,21 +37,31 @@ macro_rules! import {
 }
 
 macro_rules! path {
+    (-> $n:ident = $txt:tt) => {
+        pub fn $n(&mut self) -> &mut Self {
+            self.path = add_path_element(self.path.clone(), $txt);
+            self
+        }
+    };
+    (-> $n:ident) => {
+        pub fn $n(&mut self) -> &mut Self {
+            self.path = add_path_element(self.path.clone(), stringify!($p));
+            self
+        }
+    };
     ($n:ident) => {
-
         pub fn $n(&mut self, add: &str) -> &mut Self {
             self.path = add_path_element(self.path.clone(), add);
             self
         }
 
-    }
+    };
 }
-
 
 macro_rules! acls {
     () => {
-        pub fn acl(&mut self, name: &str) -> &mut Self {
-            self.path = add_path_element(self.path.clone(), name);
+        pub fn acl(&mut self) -> &mut Self {
+            self.path = add_path_element(self.path.clone(), "_acl");
             self
         }
 
@@ -63,15 +72,59 @@ macro_rules! acls {
     }
 }
 
-macro_rules! requests {
-    ($n:ident, $p:tt) => {
-
+macro_rules! request_type {
+    ($n:ident) => {
         pub struct $n<'c> {
             pub(crate) client: &'c Rc<HyperClient<HttpsConnector<HttpConnector>>>,
             pub(crate) core: &'c Rc<RefCell<Core>>,
             pub(crate) config: &'c Config,
             pub(crate) path: String,
+            pub(crate) api_version: String,
         }
+    }
+}
+
+macro_rules! requests {
+    (root $n:ident) => {
+        request_type!($n);
+
+        impl<'c> From<&'c ApiClient> for $n<'c> {
+            fn from(api: &'c ApiClient) -> Self {
+                let path = String::from("/");
+                Self {
+                    config: &api.config,
+                    client: &api.client,
+                    core: &api.core,
+                    path: path,
+                    api_version: String::from("1"),
+                }
+            }
+        }
+
+        execute!($n);
+    };
+    (root $n:ident, $p:tt) => {
+        request_type!($n);
+
+        impl<'c> From<&'c ApiClient> for $n<'c> {
+            fn from(api: &'c ApiClient) -> Self {
+                let path = add_path_element(
+                    String::from("/"),
+                    stringify!($p));
+                Self {
+                    config: &api.config,
+                    client: &api.client,
+                    core: &api.core,
+                    path: path,
+                    api_version: String::from("1"),
+                }
+            }
+        }
+
+        execute!($n);
+    };
+    ($n:ident, $p:tt) => {
+        request_type!($n);
 
         impl<'c> From<&'c ApiClient> for $n<'c> {
             fn from(api: &'c ApiClient) -> Self {
@@ -95,6 +148,12 @@ macro_rules! requests {
 macro_rules! execute {
     ($n:ident) => {
         impl<'e> Execute for $n<'e> {
+            fn api_version(&mut self, api_version: &str) -> &mut Self
+                {
+                    self.api_version = api_version.into();
+                    self
+                }
+
             fn execute<B, T>(&self, body: Option<B>, method: &str) -> Result<T, Error>
                 where
                     B: Serialize,

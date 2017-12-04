@@ -34,8 +34,7 @@ impl Config {
         let profile = select_profile_name(profile);
         debug!(
             "Opening credentials file: {:?} with profile: {:?}",
-            credentials,
-            profile
+            credentials, profile
         );
         match File::open(&credentials) {
             Ok(mut fh) => {
@@ -43,10 +42,9 @@ impl Config {
                 fh.read_to_string(&mut config)?;
                 Self::from_str(&config, &profile)
             }
-            Err(_) => Err(
-                ChefError::UnparseableConfigError(String::from("Unable to read credentials file"))
-                    .into(),
-            ),
+            Err(_) => Err(ChefError::UnparseableConfigError(String::from(
+                "Unable to read credentials file",
+            )).into()),
         }
     }
 
@@ -58,9 +56,10 @@ impl Config {
             self.node_name
                 .as_ref()
                 .ok_or_else(|| {
-                    ChefError::UnparseableConfigError(
-                        format!("failed to read node name for profile: {}", profile),
-                    ).into()
+                    ChefError::UnparseableConfigError(format!(
+                        "failed to read node name for profile: {}",
+                        profile
+                    )).into()
                 })
                 .and_then(|n| Ok(n.as_ref()))
         } else if self.client_name.is_some() {
@@ -74,12 +73,10 @@ impl Config {
                 })
                 .and_then(|n| Ok(n.as_ref()))
         } else {
-            Err(
-                ChefError::UnparseableConfigError(format!(
-                    "No node_name or client_name found for profile: {}",
-                    profile
-                )).into(),
-            )
+            Err(ChefError::UnparseableConfigError(format!(
+                "No node_name or client_name found for profile: {}",
+                profile
+            )).into())
         }
     }
 
@@ -153,11 +150,9 @@ fn get_chef_path(val: &str) -> Result<String, Error> {
     let home_dir = match env::home_dir() {
         Some(path) => path,
         None => {
-            return Err(
-                ChefError::PrivateKeyError(
-                    String::from("Could not identify user's home directory"),
-                ).into(),
-            )
+            return Err(ChefError::PrivateKeyError(String::from(
+                "Could not identify user's home directory",
+            )).into())
         }
     };
     let mut p = PathBuf::from(val);

@@ -42,7 +42,26 @@ impl ApiClient {
         Config::from_credentials(profile).map(ApiClient::new)?
     }
 
+    build!(clients, ClientsQuery);
+    build!(containers, ContainersQuery);
+    build!(controls, ControlsQuery);
+    build!(cookbook_artifacts, CookbookArtifactsQuery);
+    build!(cookbooks, CookbooksQuery);
+    build!(data, DataQuery);
+    build!(environments, EnvironmentsQuery);
+    build!(groups, GroupsQuery);
     build!(nodes, NodesQuery);
+    build!(policies, PoliciesQuery);
+    build!(policy_groups, PolicyGroupsQuery);
+    build!(principals, PrincipalsQuery);
+    build!(roles, RolesQuery);
+    build!(sandboxes, SandboxesQuery);
+    build!(search, SearchQuery);
+    build!(users, UsersQuery);
+
+    build!(server_organizations, ServerOrganizationsQuery);
+    build!(server_users, ServerUsersQuery);
+    build!(server_requests, ServerRequestsQuery);
 }
 
 pub trait Execute {
@@ -71,6 +90,8 @@ pub trait Execute {
     {
         self.execute(Some(body), "put")
     }
+
+    fn api_version(&mut self, api_version: &str) -> &mut Self;
 
     fn execute<B, T>(&self, body: Option<B>, method: &str) -> Result<T, Error>
     where

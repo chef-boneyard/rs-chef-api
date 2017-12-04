@@ -133,12 +133,12 @@ mod tests {
 
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
-    fn get_key_data() -> String {
+    fn get_key_data() -> Vec<u8> {
         let mut key = String::new();
         File::open(PRIVATE_KEY)
             .and_then(|mut fh| fh.read_to_string(&mut key))
             .unwrap();
-        key
+        key.into_bytes()
     }
 
     #[test]
@@ -147,7 +147,7 @@ mod tests {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            key: String::from(""),
+            key: get_key_data(),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
@@ -164,7 +164,7 @@ mod tests {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            key: String::from(""),
+            key: get_key_data(),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),

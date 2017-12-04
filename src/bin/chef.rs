@@ -16,12 +16,12 @@ pub fn main() {
     let client = ApiClient::from_credentials(None).unwrap();
 
     let nodes = client.nodes().get();
+    info!("{:?}", nodes);
     match nodes {
         Ok(nodes) => {
             let nodes: NodeList = nodes.into();
             for n in nodes {
-                let node: Node =
-                    Node::try_from(client.nodes().name(n.as_ref()).get().unwrap()).unwrap();
+                let node: Node = Node::try_from(client.nodes().node(&n).get().unwrap()).unwrap();
                 println!("{}", node.name.clone().unwrap());
                 info!("{:?}", node);
             }
@@ -30,7 +30,7 @@ pub fn main() {
     }
 
 
-    let value = client.nodes().name("data_bag_test").get();
+    let value = client.nodes().node("data_bag_test").get();
     match value {
         Ok(json) => {
             let node: Node = Node::try_from(json).unwrap();
@@ -39,37 +39,26 @@ pub fn main() {
         Err(e) => println!("{}", e),
     }
 
+    let value = client.users().get();
+    info!("{:?}", value);
 
-    // let output = node.unwrap();
-    // info!("{:?}", output);
+    let value = client
+        .cookbooks()
+        .cookbook("windows")
+        .version("3.0.5")
+        .get();
+    info!("{:?}", value);
 
+    // let fh = File::open("fixtures/node.json").unwrap();
+    // // let node2 = Node::from_json(fh).unwrap();
+    // let node2: Node = serde_json::from_reader(fh).unwrap();
+    // let value = client.nodes().post(&node2);
 
-    let fh = File::open("fixtures/node.json").unwrap();
-    // let node2 = Node::from_json(fh).unwrap();
-    let node2: Node = serde_json::from_reader(fh).unwrap();
-    let value = client.nodes().post(&node2);
-
-    match value {
-        Ok(json) => {
-            let node: Node = Node::try_from(json).unwrap();
-            info!("{:?}", node);
-        }
-        Err(e) => println!("{}", e),
-    }
-
-
-
-    // let node2 = Node::from_json(fh).unwrap();
-    // info!("Prepare for new node!");
-    // info!("{:?}", node2);
-    // let out = node2.save(&client);
-    // let out = out.unwrap();
-    // info!("{:?}", out)
-
-
-    // let nodes: NodeList = .unwrap().into();
-    // // let nodes = NodeList::new(&client);
-    // for n in nodes {
-    //     println!("{:?}", n)
+    // match value {
+    //     Ok(json) => {
+    //         let node: Node = Node::try_from(json).unwrap();
+    //         info!("{:?}", node);
+    //     }
+    //     Err(e) => println!("{}", e),
     // }
 }
