@@ -18,4 +18,4 @@ extern crate serde_json;
 extern crate chef_api;
 extern crate failure;
 
-pub mod requests;
+pub mod models;

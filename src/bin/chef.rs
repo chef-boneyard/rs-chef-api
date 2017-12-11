@@ -8,7 +8,7 @@ extern crate log;
 extern crate serde_json;
 
 use chef_api::api_client::*;
-use chef::requests::node::*;
+use chef::models::node::*;
 use std::fs::File;
 
 pub fn main() {
@@ -28,7 +28,6 @@ pub fn main() {
         }
         Err(e) => println!("{}", e),
     }
-
 
     let value = client.nodes().node("data_bag_test").get();
     match value {
