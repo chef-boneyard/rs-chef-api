@@ -9,6 +9,8 @@ use std::fmt;
 use utils::{expand_string, squeeze_path};
 use authentication::BASE64_AUTH;
 use failure::Error;
+#[allow(unused_imports)]
+use std::ascii::AsciiExt;
 
 pub struct Auth11 {
     #[allow(dead_code)] api_version: String,

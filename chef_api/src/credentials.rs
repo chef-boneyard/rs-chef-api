@@ -205,7 +205,8 @@ mod tests {
     #[test]
     fn test_environment_profile_name() {
         std::env::set_var("CHEF_PROFILE", "environment");
-        assert_eq!(select_profile_name(None), String::from("environment"))
+        assert_eq!(select_profile_name(None), String::from("environment"));
+        std::env::remove_var("CHEF_PROFILE");
     }
 
     #[test]
