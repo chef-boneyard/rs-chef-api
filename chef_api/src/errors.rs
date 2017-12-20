@@ -30,6 +30,8 @@ pub enum ChefError {
     #[fail(display = "Failed to interpret a list of items")] ListError,
     #[fail(display = "Failed to fetch {} from JSON", _0)] KeyMissingError(String),
     #[fail(display = "Can't read config file at {}", _0)] UnparseableConfigError(String),
+    #[fail(display = "Chef Server returned an error, with error code: {}", _0)]
+    ChefServerResponseError(u16),
     #[fail(display = "Failed to deserialize JSON")] DeserializeError,
     #[fail(display = "Both client_name and node_name are set in the {} profile", _0)]
     DuplicateClientNameError(String),

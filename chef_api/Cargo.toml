@@ -1,7 +1,10 @@
 [package]
 name = "chef_api"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Thom May <thom@may.lt>"]
+readme = "README.md"
+description = "Client for the Chef Server API"
+repository = "https://github.com/chef/rs-chef-api"
 
 [features]
 default = []

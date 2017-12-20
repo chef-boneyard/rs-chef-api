@@ -7,18 +7,24 @@ use std::io::Read;
 use std::env;
 use std::path::PathBuf;
 
+/// Representation of a Chef configuration.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 pub struct Config {
+    /// The URL to the Chef Server organization
     pub chef_server_url: String,
     node_name: Option<String>,
     client_name: Option<String>,
     #[serde(skip)] profile: String,
-    pub client_key: String,
+    client_key: String,
+    /// The path or contents of the validator key
     pub validator_key: Option<String>,
-    #[serde(default = "default_auth_string")] pub sign_ver: String,
+    /// The authentication scheme to use; defaults to 1.3.
+    #[serde(default = "default_auth_string")]
+    pub sign_ver: String,
 }
 
 impl Config {
+    /// Creates a new Config from a `TOML` string.
     pub fn from_str(toml: &str, profile: &str) -> Result<Self, Error> {
         let credentials = toml.parse::<Value>().unwrap();
         let credentials = credentials[profile].clone();
@@ -29,6 +35,13 @@ impl Config {
         Ok(creds)
     }
 
+    /// Loads a config from `~/.chef/credentials`, using the following heuristic to determine a
+    /// profile name:
+    ///
+    /// - If `profile` is not `None`, use the value provided.
+    /// - Using the `CHEF_PROFILE` environment variable
+    /// - Using the contents of `~/.chef/context`
+    /// - Otherwise use the default profile.
     pub fn from_credentials(profile: Option<&str>) -> Result<Self, Error> {
         let credentials = get_chef_path("credentials")?;
         let profile = select_profile_name(profile);
@@ -48,6 +61,9 @@ impl Config {
         }
     }
 
+    /// Returns the configured name to authenticate with. A profile may use either `client_name` or
+    /// `node_name` interchangeably; `client_name` is preferred, and a `DuplicateClientNameError` will
+    /// be returned if both `client_name` and `node_name` are used.
     pub fn client_name(&self) -> Result<&str, Error> {
         let profile = self.profile.clone();
         if self.client_name.is_some() && self.node_name.is_some() {
@@ -80,6 +96,7 @@ impl Config {
         }
     }
 
+    /// Returns the contents of the client key used for signing requests.
     pub fn key(&self) -> Result<Vec<u8>, Error> {
         if self.client_key
             .starts_with("-----BEGIN RSA PRIVATE KEY-----")
@@ -99,11 +116,13 @@ impl Config {
         Url::parse(self.chef_server_url.as_ref()).map_err(|e| e.into())
     }
 
+    /// Returns the organization path of the configured `chef_server_url`.
     pub fn organization_path(&self) -> Result<String, Error> {
         let endpoint = self.endpoint()?;
         Ok(endpoint.path().into())
     }
 
+    /// Returns the scheme, host and port of the configured `chef_server_url`.
     pub fn url_base(&self) -> Result<String, Error> {
         let endpoint = self.endpoint()?;
         let host = &endpoint.host_str().unwrap();
@@ -163,9 +182,9 @@ fn get_chef_path(val: &str) -> Result<String, Error> {
     }
     match p.to_str() {
         Some(path) => Ok(path.to_owned()),
-        None => {
-            Err(ChefError::PrivateKeyError(String::from("Could not construct a key path")).into())
-        }
+        None => Err(ChefError::PrivateKeyError(String::from(
+            "Could not construct a path to the user's .chef directory",
+        )).into()),
     }
 }
 

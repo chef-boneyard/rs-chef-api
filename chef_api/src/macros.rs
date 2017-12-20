@@ -1,5 +1,6 @@
 macro_rules! build {
     ($name:ident, $type:ident) => {
+        /// Generate a new $type request.
         pub fn $name(&self) -> $type {
             self.into()
         }
@@ -17,10 +18,8 @@ macro_rules! import {
         use $crate::utils::add_path_element;
 
         use serde_json;
-        use serde::de::DeserializeOwned;
         use serde::Serialize;
 
-        use std::io;
         use std::rc::Rc;
         use std::cell::RefCell;
 
@@ -45,13 +44,13 @@ macro_rules! path {
     };
     (-> $n:ident) => {
         pub fn $n(&mut self) -> &mut Self {
-            self.path = add_path_element(self.path.clone(), stringify!($p));
+            self.path = add_path_element(self.path.clone(), stringify!($n));
             self
         }
     };
     ($n:ident) => {
-        pub fn $n(&mut self, add: &str) -> &mut Self {
-            self.path = add_path_element(self.path.clone(), add);
+        pub fn $n(&mut self, value: &str) -> &mut Self {
+            self.path = add_path_element(self.path.clone(), value);
             self
         }
 
@@ -60,13 +59,15 @@ macro_rules! path {
 
 macro_rules! acls {
     () => {
+        /// Get the list of ACLs on this object
         pub fn acl(&mut self) -> &mut Self {
             self.path = add_path_element(self.path.clone(), "_acl");
             self
         }
 
-        pub fn permission(&mut self, p: &str) -> &mut Self {
-            self.path = add_path_element(self.path.clone(), p);
+        /// Modify the given permission on the object.
+        pub fn permission(&mut self, permission: &str) -> &mut Self {
+            self.path = add_path_element(self.path.clone(), permission);
             self
         }
     }
@@ -74,6 +75,7 @@ macro_rules! acls {
 
 macro_rules! request_type {
     ($n:ident) => {
+        #[derive(Debug,Clone)]
         pub struct $n<'c> {
             pub(crate) client: &'c Rc<HyperClient<HttpsConnector<HttpConnector>>>,
             pub(crate) core: &'c Rc<RefCell<Core>>,
@@ -147,17 +149,20 @@ macro_rules! requests {
 
 macro_rules! execute {
     ($n:ident) => {
+        use serde_json::Value;
+        use $crate::errors::ChefError;
+
         impl<'e> Execute for $n<'e> {
             fn api_version(&mut self, api_version: &str) -> &mut Self
-                {
-                    self.api_version = api_version.into();
-                    self
-                }
+            {
+                self.api_version = api_version.into();
+                self
+            }
 
-            fn execute<B, T>(&self, body: Option<B>, method: &str) -> Result<T, Error>
+            #[doc(hidden)]
+            fn execute<B>(&self, body: Option<B>, method: &str) -> Result<Value, Error>
                 where
-                    B: Serialize,
-                    T: DeserializeOwned
+                    B: Serialize
                     {
                         let userid = self.config.client_name()?;
                         let key = self.config.key()?;
@@ -216,14 +221,25 @@ macro_rules! execute {
                         request.set_body(body);
 
                         let client = self.client;
-                        let resp = client.request(request).and_then(|res| {
+                        let resp = client.request(request)
+                            .map_err(ChefError::HTTPError)
+                            .and_then(|res| {
                             debug!("Status is {:?}", res.status());
 
-                            res.body().concat2().and_then(move |body| {
-                                serde_json::from_slice(&body)
-                                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e).into())
-                            })
-                        });
+                            let status = res.status();
+                            res.body().concat2()
+                                .map_err(ChefError::HTTPError)
+                                .and_then(move |body| {
+                                    let body: Value = serde_json::from_slice(&body)
+                                        .map_err(ChefError::JsonError)?;
+
+                                    if status.is_success() {
+                                        Ok(body)
+                                    } else {
+                                        Err(ChefError::ChefServerResponseError(status.as_u16()))
+                                    }
+                                })
+                            });
 
                         let mut core = self.core.try_borrow_mut()?;
                         core.run(resp).map_err(|e| e.into())
