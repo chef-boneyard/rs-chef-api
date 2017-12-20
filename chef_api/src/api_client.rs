@@ -65,6 +65,7 @@ impl ApiClient {
     build!(roles, RolesQuery);
     build!(sandboxes, SandboxesQuery);
     build!(search, SearchQuery);
+    build!(universe, UniverseQuery);
     build!(users, UsersQuery);
 
     build!(server_organizations, ServerOrganizationsQuery);

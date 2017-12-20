@@ -28,6 +28,8 @@ pub mod sandboxes;
 pub use sandboxes::*;
 pub mod search;
 pub use search::*;
+pub mod universe;
+pub use universe::*;
 pub mod users;
 pub use users::*;
 
