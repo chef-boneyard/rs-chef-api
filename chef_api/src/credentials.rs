@@ -218,6 +218,7 @@ mod tests {
 
     #[test]
     fn test_default_profile_name() {
+        std::env::remove_var("CHEF_PROFILE");
         assert_eq!(select_profile_name(None), String::from("default"))
     }
 
