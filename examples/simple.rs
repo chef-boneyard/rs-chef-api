@@ -8,8 +8,7 @@ extern crate log;
 extern crate serde_json;
 
 use chef_api::api_client::*;
-use chef::models::node::*;
-use std::fs::File;
+use chef::models::*;
 
 pub fn main() {
     env_logger::init().unwrap();
@@ -48,8 +47,12 @@ pub fn main() {
         .get();
     info!("{:?}", value);
 
+    let universe = client.universe().get();
+    info!("{:?}", universe);
+
     // let fh = File::open("fixtures/node.json").unwrap();
-    // // let node2 = Node::from_json(fh).unwrap();
+    // You'd not actually need the line below, but it gives you a chance to ensure the json file is
+    // valid - otherwise just post `fh`.
     // let node2: Node = serde_json::from_reader(fh).unwrap();
     // let value = client.nodes().post(&node2);
 

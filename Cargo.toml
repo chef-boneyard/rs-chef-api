@@ -21,10 +21,5 @@ failure = "*"
 default = []
 dev = ["clippy"]
 
-[[bin]]
-name = "chef"
-doc = false
-test = false
-
 [workspace]
 members = [ "chef_api" ]
