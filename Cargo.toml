@@ -5,6 +5,7 @@ authors = ["Thom May <thom@chef.io>"]
 readme = "README.md"
 description = "Models for Chef Server objects"
 repository = "https://github.com/chef/rs-chef-api"
+license = "Apache-2.0"
 
 [dependencies]
 chef_api = { path = "chef_api" }
