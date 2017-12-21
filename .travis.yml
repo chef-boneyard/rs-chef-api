@@ -1,5 +1,4 @@
 language: rust
-cache: cargo
 branches:
   only:
     master
@@ -7,8 +6,17 @@ branches:
 matrix:
   include:
     - rust: nightly
+      env:
+        RUST_TEST_THREADS: 1
+      script: cargo test --all
     - rust: stable
+      env:
+        RUST_TEST_THREADS: 1
+      script: cargo test --all
     - rust: beta
+      env:
+        RUST_TEST_THREADS: 1
+      script: cargo test --all
     - env: 
         CLIPPY: enabled
       rust: nightly
@@ -17,9 +25,6 @@ matrix:
         RUSTFMT: enabled
       rust: nightly
       before_script:
-        - (cargo install rustfmt-nightly || true)
+        - (cargo install rustfmt-nightly --force || true)
         - export PATH=$PATH:$HOME/.cargo/bin
       script: cargo fmt -- --write-mode=diff
-  allow_failures:
-    - rust: stable
-    - rust: beta

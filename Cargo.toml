@@ -1,33 +1,25 @@
 [package]
-name = "chef_api"
+name = "chef"
 version = "0.1.0"
 authors = ["Thom May <thom@chef.io>"]
+readme = "README.md"
+description = "Models for Chef Server objects"
+repository = "https://github.com/chef/rs-chef-api"
 
 [dependencies]
-time = "*"
-log = "*"
-rustc-serialize = "*"
+chef_api = { path = "chef_api" }
 clippy = {version = "*", optional = true}
-
-futures = "0.1"
-tokio-core = "0.1"
-hyper = "0.11"
-hyper-openssl = "0.3"
-
-url = "*"
-chrono = "*"
-openssl = "0.9"
 env_logger = "*"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-error-chain = "0.10"
+log = "*"
+chrono = "*"
+failure = "*"
 
 [features]
 default = []
 dev = ["clippy"]
 
-[[bin]]
-name = "chef_api"
-doc = false
-test = false
+[workspace]
+members = [ "chef_api" ]

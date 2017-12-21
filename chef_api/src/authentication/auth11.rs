@@ -6,18 +6,17 @@ use openssl::rsa::Rsa;
 use openssl::rsa::PKCS1_PADDING;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
-use std::fs::File;
-use std::io::Read;
 use utils::{expand_string, squeeze_path};
 use authentication::BASE64_AUTH;
-use errors::*;
+use failure::Error;
+#[allow(unused_imports)]
 use std::ascii::AsciiExt;
 
 pub struct Auth11 {
     #[allow(dead_code)] api_version: String,
     body: Option<String>,
     date: String,
-    keypath: String,
+    key: Vec<u8>,
     method: String,
     path: String,
     userid: String,
@@ -30,7 +29,6 @@ impl fmt::Debug for Auth11 {
             .field("userid", &self.userid)
             .field("path", &self.path)
             .field("body", &self.body)
-            .field("keypath", &self.keypath)
             .finish()
     }
 }
@@ -38,7 +36,7 @@ impl fmt::Debug for Auth11 {
 impl Auth11 {
     pub fn new(
         path: &str,
-        key: &str,
+        key: &[u8],
         method: &str,
         userid: &str,
         api_version: &str,
@@ -53,33 +51,33 @@ impl Auth11 {
             api_version: api_version.into(),
             body: body,
             date: dt,
-            keypath: key.into(),
-            method: method.into(),
-            path: squeeze_path(path.into()),
+            key: key.into(),
+            method: method,
+            path: squeeze_path(path),
             userid: userid,
         }
     }
 
-    fn hashed_path(&self) -> Result<String> {
-        debug!("Path is: {:?}", &self.path);
-        let hash = hash2(MessageDigest::sha1(), &self.path.as_bytes())?.to_base64(BASE64_AUTH);
+    fn hashed_path(&self) -> Result<String, Error> {
+        debug!("Path is: {:?}", self.path);
+        let hash = hash2(MessageDigest::sha1(), self.path.as_bytes())?.to_base64(BASE64_AUTH);
         Ok(hash)
     }
 
-    fn content_hash(&self) -> Result<String> {
+    fn content_hash(&self) -> Result<String, Error> {
         let body = expand_string(&self.body);
         let content = hash2(MessageDigest::sha1(), body.as_bytes())?.to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
     }
 
-    fn canonical_user_id(&self) -> Result<String> {
-        hash2(MessageDigest::sha1(), &self.userid.as_bytes())
+    fn canonical_user_id(&self) -> Result<String, Error> {
+        hash2(MessageDigest::sha1(), self.userid.as_bytes())
             .and_then(|res| Ok(res.to_base64(BASE64_AUTH)))
             .map_err(|res| res.into())
     }
 
-    fn canonical_request(&self) -> Result<String> {
+    fn canonical_request(&self) -> Result<String, Error> {
         let cr = format!(
             "Method:{}\nHashed Path:{}\n\
              X-Ops-Content-Hash:{}\n\
@@ -94,25 +92,18 @@ impl Auth11 {
         Ok(cr)
     }
 
-    fn encrypted_request(&self) -> Result<String> {
-        let mut key: Vec<u8> = vec![];
-        match File::open(&self.keypath) {
-            Ok(mut fh) => {
-                try!(fh.read_to_end(&mut key));
-                let key = try!(Rsa::private_key_from_pem(key.as_slice()));
+    fn encrypted_request(&self) -> Result<String, Error> {
+        let key = Rsa::private_key_from_pem(self.key.as_slice())?;
 
-                let cr = try!(self.canonical_request());
-                let cr = cr.as_bytes();
+        let cr = self.canonical_request()?;
+        let cr = cr.as_bytes();
 
-                let mut hash: Vec<u8> = vec![0; key.size()];
-                try!(key.private_encrypt(cr, &mut hash, PKCS1_PADDING));
-                Ok(hash.to_base64(BASE64_AUTH))
-            }
-            Err(_) => Err(ErrorKind::PrivateKeyError(self.keypath.clone()).into()),
-        }
+        let mut hash: Vec<u8> = vec![0; key.size()];
+        key.private_encrypt(cr, &mut hash, PKCS1_PADDING)?;
+        Ok(hash.to_base64(BASE64_AUTH))
     }
 
-    pub fn build(self, headers: &mut Headers) -> Result<()> {
+    pub fn build(self, headers: &mut Headers) -> Result<(), Error> {
         let hsh = try!(self.content_hash());
         headers.set(OpsContentHash(hsh));
 
@@ -134,6 +125,8 @@ impl Auth11 {
 #[cfg(test)]
 mod tests {
     use super::Auth11;
+    use std::fs::File;
+    use std::io::Read;
 
     const PATH: &'static str = "/organizations/clownco";
     const BODY: &'static str = "Spec Body";
@@ -142,13 +135,21 @@ mod tests {
 
     const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
 
+    fn get_key_data() -> Vec<u8> {
+        let mut key = String::new();
+        File::open(PRIVATE_KEY)
+            .and_then(|mut fh| fh.read_to_string(&mut key))
+            .unwrap();
+        key.into_bytes()
+    }
+
     #[test]
     fn test_canonical_user_id() {
         let auth = Auth11 {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            keypath: String::from(PRIVATE_KEY),
+            key: get_key_data(),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
@@ -165,7 +166,7 @@ mod tests {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            keypath: String::from(""),
+            key: get_key_data(),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
@@ -185,7 +186,7 @@ mod tests {
             api_version: String::from("1"),
             body: Some(String::from(BODY)),
             date: String::from(DT),
-            keypath: String::from(PRIVATE_KEY),
+            key: get_key_data(),
             method: String::from("POST"),
             path: String::from(PATH),
             userid: String::from(USER),
