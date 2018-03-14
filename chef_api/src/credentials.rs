@@ -14,7 +14,8 @@ pub struct Config {
     pub chef_server_url: String,
     node_name: Option<String>,
     client_name: Option<String>,
-    #[serde(skip)] profile: String,
+    #[serde(skip)]
+    profile: String,
     client_key: String,
     /// The path or contents of the validator key
     pub validator_key: Option<String>,

@@ -5,7 +5,8 @@ chef_json_type!(ClientChefType, "client");
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Client {
-    #[serde(default)] pub name: String,
+    #[serde(default)]
+    pub name: String,
     clientname: String,
     validator: bool,
     orgname: String,

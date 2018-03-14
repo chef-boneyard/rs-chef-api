@@ -14,7 +14,8 @@ pub struct Node {
     pub normal: HashMap<String, Value>,
     pub automatic: HashMap<String, Value>,
     pub default: HashMap<String, Value>,
-    #[serde(rename = "override")] pub overrides: HashMap<String, Value>,
+    #[serde(rename = "override")]
+    pub overrides: HashMap<String, Value>,
 }
 
 model_impl!(Node);

@@ -16,7 +16,8 @@ pub struct CookbookVersion {
     resources: Vec<HashMap<String, Value>>,
     templates: Vec<HashMap<String, Value>>,
     root_files: Vec<HashMap<String, Value>>,
-    #[serde(rename = "frozen?")] pub frozen: bool,
+    #[serde(rename = "frozen?")]
+    pub frozen: bool,
     json_class: String,
 }
 

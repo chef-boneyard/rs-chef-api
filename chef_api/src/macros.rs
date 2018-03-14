@@ -1,6 +1,6 @@
 macro_rules! build {
     ($name:ident, $type:ident) => {
-        /// Generate a new $type request.
+        #[doc="Generate a new $type request."]
         pub fn $name(&self) -> $type {
             self.into()
         }
@@ -36,19 +36,31 @@ macro_rules! import {
 }
 
 macro_rules! path {
-    (-> $n:ident = $txt:tt) => {
+    (
+        $(#[$outer:meta])*
+        -> $n:ident = $txt:tt
+    ) => {
+        $(#[$outer])*
         pub fn $n(&mut self) -> &mut Self {
             self.path = add_path_element(self.path.clone(), $txt);
             self
         }
     };
-    (-> $n:ident) => {
+    (
+        $(#[$outer:meta])*
+        -> $n:ident
+    ) => {
+        $(#[$outer])*
         pub fn $n(&mut self) -> &mut Self {
             self.path = add_path_element(self.path.clone(), stringify!($n));
             self
         }
     };
-    ($n:ident) => {
+    (
+        $(#[$outer:meta])*
+        $n:ident
+    ) => {
+        $(#[$outer])*
         pub fn $n(&mut self, value: &str) -> &mut Self {
             self.path = add_path_element(self.path.clone(), value);
             self

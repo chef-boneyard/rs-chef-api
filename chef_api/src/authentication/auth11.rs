@@ -13,7 +13,8 @@ use failure::Error;
 use std::ascii::AsciiExt;
 
 pub struct Auth11 {
-    #[allow(dead_code)] api_version: String,
+    #[allow(dead_code)]
+    api_version: String,
     body: Option<String>,
     date: String,
     key: Vec<u8>,
