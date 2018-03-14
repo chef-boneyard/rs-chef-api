@@ -50,12 +50,12 @@ impl Auth11 {
 
         Auth11 {
             api_version: api_version.into(),
-            body: body,
+            body,
             date: dt,
             key: key.into(),
-            method: method,
+            method,
             path: squeeze_path(path),
-            userid: userid,
+            userid,
         }
     }
 

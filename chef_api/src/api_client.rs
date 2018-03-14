@@ -37,7 +37,7 @@ impl ApiClient {
             .build(&handle);
 
         Ok(Self {
-            config: config,
+            config,
             core: Rc::new(RefCell::new(core)),
             client: Rc::new(client),
         })

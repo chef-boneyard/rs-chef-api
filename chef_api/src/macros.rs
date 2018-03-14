@@ -109,7 +109,7 @@ macro_rules! requests {
                     config: &api.config,
                     client: &api.client,
                     core: &api.core,
-                    path: path,
+                    path,
                     api_version: String::from("1"),
                 }
             }
@@ -129,7 +129,7 @@ macro_rules! requests {
                     config: &api.config,
                     client: &api.client,
                     core: &api.core,
-                    path: path,
+                    path,
                     api_version: String::from("1"),
                 }
             }
@@ -149,7 +149,7 @@ macro_rules! requests {
                     config: &api.config,
                     client: &api.client,
                     core: &api.core,
-                    path: path,
+                    path,
                     api_version: String::from("1"),
                 }
             }
