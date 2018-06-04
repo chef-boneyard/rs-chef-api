@@ -1,19 +1,18 @@
 #[macro_export]
 macro_rules! chef_json_type {
     ($id:ident, $val:expr) => {
-        #[derive(Debug,Clone,Serialize,Deserialize)]
+        #[derive(Debug, Clone, Serialize, Deserialize)]
         struct $id(String);
         impl Default for $id {
             fn default() -> $id {
                 $id(String::from($val))
             }
         }
-    }
+    };
 }
 
 macro_rules! model_list {
     ($id:ident) => {
-
         #[derive(Debug)]
         pub struct $id {
             count: usize,
@@ -29,7 +28,7 @@ macro_rules! model_list {
                             count: 0,
                         })
                     })
-                .unwrap()
+                    .unwrap()
             }
         }
 
@@ -48,12 +47,11 @@ macro_rules! model_list {
                 }
             }
         }
-    }
+    };
 }
 
 macro_rules! model_impl {
     ($id:ident) => {
-
         impl Read for $id {
             fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
                 if let Ok(item) = serde_json::to_vec(self) {
@@ -61,9 +59,9 @@ macro_rules! model_impl {
                     Read::read(&mut item, buf)
                 } else {
                     Err(io::Error::new(
-                            IoErrorKind::InvalidData,
-                            "Failed to convert to JSON",
-                            ))
+                        IoErrorKind::InvalidData,
+                        "Failed to convert to JSON",
+                    ))
                 }
             }
         }
@@ -73,8 +71,7 @@ macro_rules! model_impl {
                 serde_json::from_value(val).map_err(|e| e.into())
             }
         }
-
-    }
+    };
 }
 
 macro_rules! model_use {
@@ -85,12 +82,12 @@ macro_rules! model_use {
         use serde_json;
         use serde_json::Value;
 
-        use std::io;
-        use std::io::{Cursor, Read};
-        use std::io::ErrorKind as IoErrorKind;
         #[allow(unused_imports)]
         use std::collections::HashMap;
-    }
+        use std::io;
+        use std::io::ErrorKind as IoErrorKind;
+        use std::io::{Cursor, Read};
+    };
 }
 
 pub mod node;

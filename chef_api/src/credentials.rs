@@ -1,11 +1,11 @@
-use toml::Value;
-use failure::Error;
 use errors::*;
-use url::Url;
+use failure::Error;
+use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::env;
 use std::path::PathBuf;
+use toml::Value;
+use url::Url;
 
 /// Representation of a Chef configuration.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
@@ -99,7 +99,8 @@ impl Config {
 
     /// Returns the contents of the client key used for signing requests.
     pub fn key(&self) -> Result<Vec<u8>, Error> {
-        if self.client_key
+        if self
+            .client_key
             .starts_with("-----BEGIN RSA PRIVATE KEY-----")
         {
             Ok(self.client_key.as_bytes().into())

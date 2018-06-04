@@ -60,13 +60,13 @@ extern crate serde_json;
 extern crate toml;
 
 pub use errors::*;
-pub mod errors;
 pub mod authentication;
+pub mod errors;
 mod http_headers;
 #[macro_use]
 mod macros;
-pub mod utils;
 pub mod credentials;
+pub mod utils;
 
 pub mod api_client;
 
