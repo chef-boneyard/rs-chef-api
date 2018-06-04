@@ -1,16 +1,14 @@
+use authentication::BASE64_AUTH;
 use chrono::*;
+use failure::Error;
 use http_headers::*;
 use hyper::header::Headers;
-use openssl::hash::{MessageDigest, hash2};
-use openssl::sign::Signer;
+use openssl::hash::{hash2, MessageDigest};
 use openssl::pkey::PKey;
+use openssl::sign::Signer;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
 use utils::{expand_string, squeeze_path};
-use authentication::BASE64_AUTH;
-use failure::Error;
-#[allow(unused_imports)]
-use std::ascii::AsciiExt;
 
 pub struct Auth13 {
     api_version: String,
@@ -119,8 +117,8 @@ mod tests {
     use super::Auth13;
 
     use openssl::hash::MessageDigest;
-    use openssl::sign::Verifier;
     use openssl::pkey::PKey;
+    use openssl::sign::Verifier;
     use rustc_serialize::base64::FromBase64;
     use std::fs::File;
     use std::io::Read;

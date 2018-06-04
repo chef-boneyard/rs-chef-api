@@ -1,16 +1,14 @@
+use authentication::BASE64_AUTH;
 use chrono::*;
+use failure::Error;
 use http_headers::*;
 use hyper::header::Headers;
-use openssl::hash::{MessageDigest, hash2};
-use openssl::rsa::Rsa;
+use openssl::hash::{hash2, MessageDigest};
 use openssl::rsa::PKCS1_PADDING;
+use openssl::rsa::Rsa;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
 use utils::{expand_string, squeeze_path};
-use authentication::BASE64_AUTH;
-use failure::Error;
-#[allow(unused_imports)]
-use std::ascii::AsciiExt;
 
 pub struct Auth11 {
     #[allow(dead_code)]

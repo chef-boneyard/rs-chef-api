@@ -1,9 +1,9 @@
-use openssl;
-use std;
-use serde_json;
-use url;
 use hyper;
+use openssl;
+use serde_json;
+use std;
 use toml;
+use url;
 
 #[derive(Fail, Debug)]
 pub enum ChefError {

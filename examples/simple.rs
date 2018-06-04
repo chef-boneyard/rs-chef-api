@@ -7,8 +7,8 @@ extern crate log;
 
 extern crate serde_json;
 
-use chef_api::api_client::*;
 use chef::models::*;
+use chef_api::api_client::*;
 
 pub fn main() {
     env_logger::init().unwrap();

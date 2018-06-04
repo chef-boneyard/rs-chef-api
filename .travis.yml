@@ -25,6 +25,5 @@ matrix:
         RUSTFMT: enabled
       rust: nightly
       before_script:
-        - (cargo install rustfmt-nightly --force || true)
-        - export PATH=$PATH:$HOME/.cargo/bin
-      script: cargo fmt -- --write-mode=diff
+        - rustup component add rustfmt-preview
+      script: cargo fmt --all -- --check

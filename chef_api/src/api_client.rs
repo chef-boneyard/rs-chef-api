@@ -1,16 +1,16 @@
 use credentials::Config;
 
-use hyper::Client as HyperClient;
 use hyper::client::HttpConnector;
+use hyper::Client as HyperClient;
 use hyper_openssl::HttpsConnector;
 
 use tokio_core::reactor::Core;
 
-use std::rc::Rc;
-use std::cell::RefCell;
+use failure::Error;
 use serde::ser::*;
 use serde_json::Value;
-use failure::Error;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use requests::*;
 
