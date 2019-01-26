@@ -1,4 +1,4 @@
-use errors::ChefError;
+use crate::errors::ChefError;
 use failure::Error;
 use serde_json::Value;
 

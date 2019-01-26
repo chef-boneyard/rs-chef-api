@@ -1,4 +1,4 @@
-use credentials::Config;
+use crate::credentials::Config;
 
 use hyper::client::HttpConnector;
 use hyper::Client as HyperClient;
@@ -12,7 +12,7 @@ use serde_json::Value;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use requests::*;
+use crate::requests::*;
 
 /// Struct used to start requests to the Chef Server API.
 #[derive(Debug, Clone)]

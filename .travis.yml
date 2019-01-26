@@ -2,28 +2,11 @@ language: rust
 branches:
   only:
     master
-
-matrix:
-  include:
-    - rust: nightly
-      env:
-        RUST_TEST_THREADS: 1
-      script: cargo test --all
-    - rust: stable
-      env:
-        RUST_TEST_THREADS: 1
-      script: cargo test --all
-    - rust: beta
-      env:
-        RUST_TEST_THREADS: 1
-      script: cargo test --all
-    - env: 
-        CLIPPY: enabled
-      rust: nightly
-      script: cargo build --features "dev"
-    - env:
-        RUSTFMT: enabled
-      rust: nightly
-      before_script:
-        - rustup component add rustfmt-preview
-      script: cargo fmt --all -- --check
+rust:
+  - nightly
+  - stable
+before_script: rustup component add rustfmt clippy
+script:
+  - cargo test --all
+  - cargo clippy --all --all-targets --all-features -- -D warnings
+  - cargo fmt --all -- --check

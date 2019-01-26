@@ -6,16 +6,12 @@ readme = "README.md"
 description = "Client for the Chef Server API"
 repository = "https://github.com/chef/rs-chef-api"
 license = "Apache-2.0"
-
-[features]
-default = []
-dev = ["clippy"]
+edition = "2018"
 
 [dependencies]
 time = "0.1"
 log = "0.3"
 rustc-serialize = "0.3"
-clippy = {version = "0", optional = true}
 
 futures = "0.1"
 tokio-core = "0.1"

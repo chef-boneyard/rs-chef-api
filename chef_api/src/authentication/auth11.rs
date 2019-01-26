@@ -1,14 +1,14 @@
-use authentication::BASE64_AUTH;
+use crate::authentication::BASE64_AUTH;
+use crate::http_headers::*;
+use crate::utils::{expand_string, squeeze_path};
 use chrono::*;
 use failure::Error;
-use http_headers::*;
 use hyper::header::Headers;
 use openssl::hash::{hash, MessageDigest};
 use openssl::rsa::Padding;
 use openssl::rsa::Rsa;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
-use utils::{expand_string, squeeze_path};
 
 pub struct Auth11 {
     #[allow(dead_code)]
@@ -82,10 +82,10 @@ impl Auth11 {
              X-Ops-Content-Hash:{}\n\
              X-Ops-Timestamp:{}\nX-Ops-UserId:{}",
             &self.method,
-            try!(self.hashed_path()),
-            try!(self.content_hash()),
+            self.hashed_path()?,
+            self.content_hash()?,
             self.date,
-            try!(self.canonical_user_id())
+            self.canonical_user_id()?
         );
         debug!("Canonical Request is: {:?}", cr);
         Ok(cr)
@@ -103,14 +103,14 @@ impl Auth11 {
     }
 
     pub fn build(self, headers: &mut Headers) -> Result<(), Error> {
-        let hsh = try!(self.content_hash());
+        let hsh = self.content_hash()?;
         headers.set(OpsContentHash(hsh));
 
         headers.set(OpsSign(String::from("algorithm=sha1;version=1.1")));
         headers.set(OpsTimestamp(self.date.clone()));
         headers.set(OpsUserId(self.userid.clone()));
 
-        let enc = try!(self.encrypted_request());
+        let enc = self.encrypted_request()?;
         let mut i = 1;
         for h in enc.split('\n') {
             let key = format!("X-Ops-Authorization-{}", i);
@@ -127,12 +127,12 @@ mod tests {
     use std::fs::File;
     use std::io::Read;
 
-    const PATH: &'static str = "/organizations/clownco";
-    const BODY: &'static str = "Spec Body";
-    const USER: &'static str = "spec-user";
-    const DT: &'static str = "2009-01-01T12:00:00Z";
+    const PATH: &str = "/organizations/clownco";
+    const BODY: &str = "Spec Body";
+    const USER: &str = "spec-user";
+    const DT: &str = "2009-01-01T12:00:00Z";
 
-    const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
+    const PRIVATE_KEY: &str = "fixtures/spec-user.pem";
 
     fn get_key_data() -> Vec<u8> {
         let mut key = String::new();

@@ -178,7 +178,7 @@ macro_rules! execute {
                 let path = self.path.clone();
                 let api_version = self.api_version.clone();
 
-                let url = try!(format!("{}{}", &self.config.url_base()?, path).parse());
+                let url = format!("{}{}", &self.config.url_base()?, path).parse()?;
 
                 let mth = match method {
                     "put" => Method::Put,

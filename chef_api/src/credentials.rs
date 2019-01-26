@@ -1,5 +1,5 @@
+use crate::errors::*;
 use dirs;
-use errors::*;
 use failure::Error;
 use std::env;
 use std::fs::File;
@@ -206,7 +206,7 @@ mod tests {
     use super::*;
     use std;
 
-    const CREDENTIALS: &'static str = r#"
+    const CREDENTIALS: &str = r#"
     [default]
     node_name = 'barney'
     client_key = 'barney_rubble.pem'
