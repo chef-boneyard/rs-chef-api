@@ -3,9 +3,9 @@ use chrono::*;
 use failure::Error;
 use http_headers::*;
 use hyper::header::Headers;
-use openssl::hash::{hash2, MessageDigest};
+use openssl::hash::{hash, MessageDigest};
+use openssl::rsa::Padding;
 use openssl::rsa::Rsa;
-use openssl::rsa::PKCS1_PADDING;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
 use utils::{expand_string, squeeze_path};
@@ -59,19 +59,19 @@ impl Auth11 {
 
     fn hashed_path(&self) -> Result<String, Error> {
         debug!("Path is: {:?}", self.path);
-        let hash = hash2(MessageDigest::sha1(), self.path.as_bytes())?.to_base64(BASE64_AUTH);
+        let hash = hash(MessageDigest::sha1(), self.path.as_bytes())?.to_base64(BASE64_AUTH);
         Ok(hash)
     }
 
     fn content_hash(&self) -> Result<String, Error> {
         let body = expand_string(&self.body);
-        let content = hash2(MessageDigest::sha1(), body.as_bytes())?.to_base64(BASE64_AUTH);
+        let content = hash(MessageDigest::sha1(), body.as_bytes())?.to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
     }
 
     fn canonical_user_id(&self) -> Result<String, Error> {
-        hash2(MessageDigest::sha1(), self.userid.as_bytes())
+        hash(MessageDigest::sha1(), self.userid.as_bytes())
             .and_then(|res| Ok(res.to_base64(BASE64_AUTH)))
             .map_err(|res| res.into())
     }
@@ -97,8 +97,8 @@ impl Auth11 {
         let cr = self.canonical_request()?;
         let cr = cr.as_bytes();
 
-        let mut hash: Vec<u8> = vec![0; key.size()];
-        key.private_encrypt(cr, &mut hash, PKCS1_PADDING)?;
+        let mut hash: Vec<u8> = vec![0; key.size() as usize];
+        key.private_encrypt(cr, &mut hash, Padding::PKCS1)?;
         Ok(hash.to_base64(BASE64_AUTH))
     }
 

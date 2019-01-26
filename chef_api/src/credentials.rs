@@ -1,3 +1,4 @@
+use dirs;
 use errors::*;
 use failure::Error;
 use std::env;
@@ -172,7 +173,7 @@ fn select_profile_name(name: Option<&str>) -> String {
 }
 
 fn get_chef_path(val: &str) -> Result<String, Error> {
-    let home_dir = match env::home_dir() {
+    let home_dir = match dirs::home_dir() {
         Some(path) => path,
         None => {
             return Err(ChefError::PrivateKeyError(String::from(
@@ -247,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_get_chef_path() {
-        let home = std::env::home_dir().unwrap();
+        let home = dirs::home_dir().unwrap();
         std::env::set_var("HOME", "/home/barney");
         let path = get_chef_path("credentials").unwrap();
         assert_eq!(path, "/home/barney/.chef/credentials");
@@ -256,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_absolute_get_chef_path() {
-        let home = std::env::home_dir().unwrap();
+        let home = dirs::home_dir().unwrap();
         std::env::set_var("HOME", "/home/barney");
         let path = get_chef_path("/home/fred/.chef/fred.pem").unwrap();
         assert_eq!(path, "/home/fred/.chef/fred.pem");

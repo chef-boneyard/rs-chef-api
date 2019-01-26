@@ -59,6 +59,8 @@ extern crate serde_json;
 
 extern crate toml;
 
+extern crate dirs;
+
 pub use errors::*;
 pub mod authentication;
 pub mod errors;

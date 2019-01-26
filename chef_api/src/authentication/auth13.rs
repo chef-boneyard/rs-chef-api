@@ -3,7 +3,7 @@ use chrono::*;
 use failure::Error;
 use http_headers::*;
 use hyper::header::Headers;
-use openssl::hash::{hash2, MessageDigest};
+use openssl::hash::{hash, MessageDigest};
 use openssl::pkey::PKey;
 use openssl::sign::Signer;
 use rustc_serialize::base64::ToBase64;
@@ -59,7 +59,7 @@ impl Auth13 {
     fn content_hash(&self) -> Result<String, Error> {
         let body = expand_string(&self.body);
         debug!("Content body is: {:?}", body);
-        let content = hash2(MessageDigest::sha256(), body.as_bytes())?.to_base64(BASE64_AUTH);
+        let content = hash(MessageDigest::sha256(), body.as_bytes())?.to_base64(BASE64_AUTH);
         debug!("Content hash is: {:?}", content);
         Ok(content)
     }
