@@ -58,7 +58,8 @@ impl Config {
             }
             Err(_) => Err(ChefError::UnparseableConfigError(String::from(
                 "Unable to read credentials file",
-            )).into()),
+            ))
+            .into()),
         }
     }
 
@@ -76,7 +77,8 @@ impl Config {
                     ChefError::UnparseableConfigError(format!(
                         "failed to read node name for profile: {}",
                         profile
-                    )).into()
+                    ))
+                    .into()
                 })
                 .and_then(|n| Ok(n.as_ref()))
         } else if self.client_name.is_some() {
@@ -86,14 +88,16 @@ impl Config {
                     ChefError::UnparseableConfigError(format!(
                         "failed to read client name for profile: {}",
                         profile
-                    )).into()
+                    ))
+                    .into()
                 })
                 .and_then(|n| Ok(n.as_ref()))
         } else {
             Err(ChefError::UnparseableConfigError(format!(
                 "No node_name or client_name found for profile: {}",
                 profile
-            )).into())
+            ))
+            .into())
         }
     }
 
@@ -173,7 +177,8 @@ fn get_chef_path(val: &str) -> Result<String, Error> {
         None => {
             return Err(ChefError::PrivateKeyError(String::from(
                 "Could not identify user's home directory",
-            )).into())
+            ))
+            .into());
         }
     };
     let mut p = PathBuf::from(val);
@@ -186,7 +191,8 @@ fn get_chef_path(val: &str) -> Result<String, Error> {
         Some(path) => Ok(path.to_owned()),
         None => Err(ChefError::PrivateKeyError(String::from(
             "Could not construct a path to the user's .chef directory",
-        )).into()),
+        ))
+        .into()),
     }
 }
 

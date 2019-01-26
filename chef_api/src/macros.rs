@@ -203,7 +203,8 @@ macro_rules! execute {
                         &userid,
                         &api_version,
                         Some(body.clone().into()),
-                    ).build(request.headers_mut())?,
+                    )
+                    .build(request.headers_mut())?,
                     _ => Auth13::new(
                         &path,
                         &key,
@@ -211,7 +212,8 @@ macro_rules! execute {
                         &userid,
                         &api_version,
                         Some(body.clone().into()),
-                    ).build(request.headers_mut())?,
+                    )
+                    .build(request.headers_mut())?,
                 };
 
                 let json = APPLICATION_JSON;
