@@ -1,16 +1,14 @@
+use crate::authentication::BASE64_AUTH;
+use crate::http_headers::*;
+use crate::utils::{expand_string, squeeze_path};
 use chrono::*;
-use http_headers::*;
+use failure::Error;
 use hyper::header::Headers;
-use openssl::hash::{MessageDigest, hash2};
-use openssl::sign::Signer;
+use openssl::hash::{hash, MessageDigest};
 use openssl::pkey::PKey;
+use openssl::sign::Signer;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
-use utils::{expand_string, squeeze_path};
-use authentication::BASE64_AUTH;
-use failure::Error;
-#[allow(unused_imports)]
-use std::ascii::AsciiExt;
 
 pub struct Auth13 {
     api_version: String,
@@ -61,7 +59,7 @@ impl Auth13 {
     fn content_hash(&self) -> Result<String, Error> {
         let body = expand_string(&self.body);
         debug!("Content body is: {:?}", body);
-        let content = hash2(MessageDigest::sha256(), body.as_bytes())?.to_base64(BASE64_AUTH);
+        let content = hash(MessageDigest::sha256(), body.as_bytes())?.to_base64(BASE64_AUTH);
         debug!("Content hash is: {:?}", content);
         Ok(content)
     }
@@ -73,7 +71,7 @@ impl Auth13 {
              X-Ops-UserId:{}\nX-Ops-Server-API-Version:{}",
             &self.method,
             &self.path,
-            try!(self.content_hash()),
+            self.content_hash()?,
             self.date,
             &self.userid,
             &self.api_version
@@ -103,7 +101,7 @@ impl Auth13 {
         headers.set(OpsTimestamp(self.date.clone()));
         headers.set(OpsUserId(self.userid.clone()));
 
-        let enc = try!(self.signed_request());
+        let enc = self.signed_request()?;
         let mut i = 1;
         for h in enc.split('\n') {
             let key = format!("X-Ops-Authorization-{}", i);
@@ -119,18 +117,18 @@ mod tests {
     use super::Auth13;
 
     use openssl::hash::MessageDigest;
-    use openssl::sign::Verifier;
     use openssl::pkey::PKey;
+    use openssl::sign::Verifier;
     use rustc_serialize::base64::FromBase64;
     use std::fs::File;
     use std::io::Read;
 
-    const PATH: &'static str = "/organizations/clownco";
-    const BODY: &'static str = "Spec Body";
-    const USER: &'static str = "spec-user";
-    const DT: &'static str = "2009-01-01T12:00:00Z";
+    const PATH: &str = "/organizations/clownco";
+    const BODY: &str = "Spec Body";
+    const USER: &str = "spec-user";
+    const DT: &str = "2009-01-01T12:00:00Z";
 
-    const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
+    const PRIVATE_KEY: &str = "fixtures/spec-user.pem";
 
     fn get_key_data() -> Vec<u8> {
         let mut key = String::new();

@@ -6,6 +6,7 @@ readme = "README.md"
 description = "Models for Chef Server objects"
 repository = "https://github.com/chef/rs-chef-api"
 license = "Apache-2.0"
+edition = "2018"
 
 [dependencies]
 chef_api = { version = "0.2", path = "chef_api" }

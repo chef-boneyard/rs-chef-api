@@ -1,5 +1,5 @@
+use crate::errors::ChefError;
 use failure::Error;
-use errors::ChefError;
 use serde_json::Value;
 
 pub fn expand_string(val: &Option<String>) -> String {

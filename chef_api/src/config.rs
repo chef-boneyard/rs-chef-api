@@ -1,10 +1,10 @@
-use url::Url;
+use errors::*;
 use serde_json;
 use serde_json::Value;
-use std::path::PathBuf;
 use std::env;
 use std::fs::File;
-use errors::*;
+use std::path::PathBuf;
+use url::Url;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Config {
@@ -25,23 +25,23 @@ impl Config {
     /// Load a configuration file from JSON
     pub fn from_json(path: &str) -> Result<Self> {
         let path = get_absolute_path(path);
-        let fh = try!(File::open(&path));
-        let val: Value = try!(serde_json::from_reader(fh));
+        let fh = File::open(&path)?;
+        let val: Value = serde_json::from_reader(fh)?;
 
         if let Some(ref obj) = val.as_object() {
             let key = obj.get("client_key").unwrap();
-            let key: String = try!(serde_json::from_value(key.clone()));
+            let key: String = serde_json::from_value(key.clone())?;
             let key = get_absolute_path(key.as_ref());
 
             let endpoint = obj.get("chef_server_url").unwrap();
-            let endpoint: String = try!(serde_json::from_value(endpoint.clone()));
+            let endpoint: String = serde_json::from_value(endpoint.clone())?;
 
             let user = obj.get("node_name").unwrap();
-            let user: String = try!(serde_json::from_value(user.clone()));
+            let user: String = serde_json::from_value(user.clone())?;
 
             let sign_ver: String = "1.3".into();
 
-            let endpoint = try!(Url::parse(endpoint.as_ref()));
+            let endpoint = Url::parse(endpoint.as_ref())?;
 
             Ok(Config {
                 endpoint: Some(endpoint),

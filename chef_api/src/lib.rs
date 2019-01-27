@@ -27,12 +27,6 @@
 //! [RFC 99]: https://chef.github.io/chef-rfc/rfc099-authentication-config-file.html
 //! [`serde`]: https://serde.rs/
 //!
-#![cfg_attr(feature = "dev", allow(unstable_features))]
-#![cfg_attr(feature = "dev", feature(plugin))]
-#![cfg_attr(feature = "dev", plugin(clippy))]
-// #![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-//         trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-//         unused_qualifications)]
 
 #[macro_use]
 extern crate failure;
@@ -59,16 +53,18 @@ extern crate serde_json;
 
 extern crate toml;
 
-pub use errors::*;
-pub mod errors;
+extern crate dirs;
+
+pub use crate::errors::*;
 pub mod authentication;
+pub mod errors;
 mod http_headers;
 #[macro_use]
 mod macros;
-pub mod utils;
 pub mod credentials;
+pub mod utils;
 
 pub mod api_client;
 
-pub use requests::*;
+pub use crate::requests::*;
 pub mod requests;

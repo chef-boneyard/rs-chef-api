@@ -1,16 +1,14 @@
+use crate::authentication::BASE64_AUTH;
+use crate::http_headers::*;
+use crate::utils::{expand_string, squeeze_path};
 use chrono::*;
-use http_headers::*;
+use failure::Error;
 use hyper::header::Headers;
-use openssl::hash::{MessageDigest, hash2};
+use openssl::hash::{hash, MessageDigest};
+use openssl::rsa::Padding;
 use openssl::rsa::Rsa;
-use openssl::rsa::PKCS1_PADDING;
 use rustc_serialize::base64::ToBase64;
 use std::fmt;
-use utils::{expand_string, squeeze_path};
-use authentication::BASE64_AUTH;
-use failure::Error;
-#[allow(unused_imports)]
-use std::ascii::AsciiExt;
 
 pub struct Auth11 {
     #[allow(dead_code)]
@@ -61,19 +59,19 @@ impl Auth11 {
 
     fn hashed_path(&self) -> Result<String, Error> {
         debug!("Path is: {:?}", self.path);
-        let hash = hash2(MessageDigest::sha1(), self.path.as_bytes())?.to_base64(BASE64_AUTH);
+        let hash = hash(MessageDigest::sha1(), self.path.as_bytes())?.to_base64(BASE64_AUTH);
         Ok(hash)
     }
 
     fn content_hash(&self) -> Result<String, Error> {
         let body = expand_string(&self.body);
-        let content = hash2(MessageDigest::sha1(), body.as_bytes())?.to_base64(BASE64_AUTH);
+        let content = hash(MessageDigest::sha1(), body.as_bytes())?.to_base64(BASE64_AUTH);
         debug!("{:?}", content);
         Ok(content)
     }
 
     fn canonical_user_id(&self) -> Result<String, Error> {
-        hash2(MessageDigest::sha1(), self.userid.as_bytes())
+        hash(MessageDigest::sha1(), self.userid.as_bytes())
             .and_then(|res| Ok(res.to_base64(BASE64_AUTH)))
             .map_err(|res| res.into())
     }
@@ -84,10 +82,10 @@ impl Auth11 {
              X-Ops-Content-Hash:{}\n\
              X-Ops-Timestamp:{}\nX-Ops-UserId:{}",
             &self.method,
-            try!(self.hashed_path()),
-            try!(self.content_hash()),
+            self.hashed_path()?,
+            self.content_hash()?,
             self.date,
-            try!(self.canonical_user_id())
+            self.canonical_user_id()?
         );
         debug!("Canonical Request is: {:?}", cr);
         Ok(cr)
@@ -99,20 +97,20 @@ impl Auth11 {
         let cr = self.canonical_request()?;
         let cr = cr.as_bytes();
 
-        let mut hash: Vec<u8> = vec![0; key.size()];
-        key.private_encrypt(cr, &mut hash, PKCS1_PADDING)?;
+        let mut hash: Vec<u8> = vec![0; key.size() as usize];
+        key.private_encrypt(cr, &mut hash, Padding::PKCS1)?;
         Ok(hash.to_base64(BASE64_AUTH))
     }
 
     pub fn build(self, headers: &mut Headers) -> Result<(), Error> {
-        let hsh = try!(self.content_hash());
+        let hsh = self.content_hash()?;
         headers.set(OpsContentHash(hsh));
 
         headers.set(OpsSign(String::from("algorithm=sha1;version=1.1")));
         headers.set(OpsTimestamp(self.date.clone()));
         headers.set(OpsUserId(self.userid.clone()));
 
-        let enc = try!(self.encrypted_request());
+        let enc = self.encrypted_request()?;
         let mut i = 1;
         for h in enc.split('\n') {
             let key = format!("X-Ops-Authorization-{}", i);
@@ -129,12 +127,12 @@ mod tests {
     use std::fs::File;
     use std::io::Read;
 
-    const PATH: &'static str = "/organizations/clownco";
-    const BODY: &'static str = "Spec Body";
-    const USER: &'static str = "spec-user";
-    const DT: &'static str = "2009-01-01T12:00:00Z";
+    const PATH: &str = "/organizations/clownco";
+    const BODY: &str = "Spec Body";
+    const USER: &str = "spec-user";
+    const DT: &str = "2009-01-01T12:00:00Z";
 
-    const PRIVATE_KEY: &'static str = "fixtures/spec-user.pem";
+    const PRIVATE_KEY: &str = "fixtures/spec-user.pem";
 
     fn get_key_data() -> Vec<u8> {
         let mut key = String::new();

@@ -1,9 +1,9 @@
-use openssl;
-use std;
-use serde_json;
-use url;
 use hyper;
+use openssl;
+use serde_json;
+use std;
 use toml;
+use url;
 
 #[derive(Fail, Debug)]
 pub enum ChefError {
@@ -14,9 +14,15 @@ pub enum ChefError {
     IOError(#[cause] std::io::Error),
     #[fail(display = "An error occurred attempting to handle JSON: {}", _0)]
     JsonError(#[cause] serde_json::Error),
-    #[fail(display = "An error occurred attempting to parse the Chef Server URL: {}", _0)]
+    #[fail(
+        display = "An error occurred attempting to parse the Chef Server URL: {}",
+        _0
+    )]
     UrlParseError(#[cause] url::ParseError),
-    #[fail(display = "An error occurred attempting to parse the Chef Server URL: {}", _0)]
+    #[fail(
+        display = "An error occurred attempting to parse the Chef Server URL: {}",
+        _0
+    )]
     UriError(#[cause] hyper::error::UriError),
     #[fail(display = "An error occurred communicating to the Chef Server: {}", _0)]
     HTTPError(#[cause] hyper::error::Error),
@@ -38,6 +44,9 @@ pub enum ChefError {
     ChefServerResponseError(u16),
     #[fail(display = "Failed to deserialize JSON")]
     DeserializeError,
-    #[fail(display = "Both client_name and node_name are set in the {} profile", _0)]
+    #[fail(
+        display = "Both client_name and node_name are set in the {} profile",
+        _0
+    )]
     DuplicateClientNameError(String),
 }
