@@ -16,3 +16,4 @@ pub struct Client {
 
 model_impl!(Client);
 model_list!(ClientList);
+model_result!(Client, ClientResult);

@@ -24,3 +24,4 @@ pub struct Role {
 
 model_impl!(Role);
 model_list!(RoleList);
+model_result!(Role, RoleResult);
