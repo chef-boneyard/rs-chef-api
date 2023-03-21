@@ -1,10 +1,10 @@
 macro_rules! build {
     ($name:ident, $type:ident) => {
-        #[doc="Generate a new $type request."]
+        #[doc = "Generate a new $type request."]
         pub fn $name(&self) -> $type {
             self.into()
         }
-    }
+    };
 }
 
 macro_rules! import {
@@ -82,7 +82,7 @@ macro_rules! acls {
             self.path = add_path_element(self.path.clone(), permission);
             self
         }
-    }
+    };
 }
 
 macro_rules! request_type {
@@ -94,6 +94,7 @@ macro_rules! request_type {
             pub(crate) config: &'c Config,
             pub(crate) path: String,
             pub(crate) api_version: String,
+            pub(crate) q: Option<String>,
         }
     };
 }
@@ -111,6 +112,7 @@ macro_rules! requests {
                     core: &api.core,
                     path,
                     api_version: String::from("1"),
+                    q: None,
                 }
             }
         }
@@ -129,6 +131,7 @@ macro_rules! requests {
                     core: &api.core,
                     path,
                     api_version: String::from("1"),
+                    q: None,
                 }
             }
         }
@@ -148,6 +151,7 @@ macro_rules! requests {
                     core: &api.core,
                     path,
                     api_version: String::from("1"),
+                    q: None,
                 }
             }
         }
@@ -178,7 +182,11 @@ macro_rules! execute {
                 let path = self.path.clone();
                 let api_version = self.api_version.clone();
 
-                let url = format!("{}{}", &self.config.url_base()?, path).parse()?;
+                let mut url = url::Url::parse(&format!("{}{}", &self.config.url_base()?, path))?; //.parse()?;
+                if self.q.is_some() {
+                    url.query_pairs_mut()
+                        .append_pair("q", self.q.as_ref().unwrap());
+                }
 
                 let mth = match method {
                     "put" => Method::Put,
@@ -188,7 +196,7 @@ macro_rules! execute {
                     _ => Method::Get,
                 };
 
-                let mut request = Request::new(mth, url);
+                let mut request = Request::new(mth, url.as_str().parse()?);
 
                 let body = match body {
                     Some(b) => serde_json::to_string(&b)?,

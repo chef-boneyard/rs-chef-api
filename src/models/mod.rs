@@ -50,6 +50,51 @@ macro_rules! model_list {
     };
 }
 
+macro_rules! model_result {
+    ($model:ident, $id:ident) => {
+        #[derive(Debug)]
+        pub struct $id {
+            count: usize,
+            items: Vec<$model>,
+        }
+
+        impl From<Value> for $id {
+            fn from(list: Value) -> Self {
+                assert!(list.is_object());
+                let list = list.get("rows").unwrap();
+
+                assert!(list.is_array());
+                let mut output: Vec<$model> = Vec::new();
+
+                for json_node in list.as_array().unwrap().to_owned() {
+                    output.push($model::try_from(json_node).unwrap());
+                }
+
+                $id {
+                    count: output.len(),
+                    items: output,
+                }
+            }
+        }
+
+        impl Iterator for $id {
+            type Item = $model;
+
+            fn count(self) -> usize {
+                self.items.len()
+            }
+
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.items.len() >= 1 {
+                    Some(self.items.remove(0))
+                } else {
+                    None
+                }
+            }
+        }
+    };
+}
+
 macro_rules! model_impl {
     ($id:ident) => {
         impl Read for $id {

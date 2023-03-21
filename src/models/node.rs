@@ -20,3 +20,4 @@ pub struct Node {
 
 model_impl!(Node);
 model_list!(NodeList);
+model_result!(Node, NodeResult);
