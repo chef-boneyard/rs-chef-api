@@ -15,19 +15,13 @@ macro_rules! model_list {
     ($id:ident) => {
         #[derive(Debug)]
         pub struct $id {
-            count: usize,
             items: Vec<String>,
         }
 
         impl From<Value> for $id {
             fn from(list: Value) -> Self {
                 decode_list(&list)
-                    .and_then(|list| {
-                        Ok(Self {
-                            items: list,
-                            count: 0,
-                        })
-                    })
+                    .and_then(|list| Ok(Self { items: list }))
                     .unwrap()
             }
         }
