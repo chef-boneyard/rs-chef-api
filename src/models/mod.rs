@@ -48,7 +48,6 @@ macro_rules! model_result {
     ($model:ident, $id:ident) => {
         #[derive(Debug)]
         pub struct $id {
-            count: usize,
             items: Vec<$model>,
         }
 
@@ -64,10 +63,7 @@ macro_rules! model_result {
                     output.push($model::try_from(json_node).unwrap());
                 }
 
-                $id {
-                    count: output.len(),
-                    items: output,
-                }
+                $id { items: output }
             }
         }
 
