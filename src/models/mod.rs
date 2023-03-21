@@ -15,25 +15,60 @@ macro_rules! model_list {
     ($id:ident) => {
         #[derive(Debug)]
         pub struct $id {
-            count: usize,
             items: Vec<String>,
         }
 
         impl From<Value> for $id {
             fn from(list: Value) -> Self {
                 decode_list(&list)
-                    .and_then(|list| {
-                        Ok(Self {
-                            items: list,
-                            count: 0,
-                        })
-                    })
+                    .and_then(|list| Ok(Self { items: list }))
                     .unwrap()
             }
         }
 
         impl Iterator for $id {
             type Item = String;
+
+            fn count(self) -> usize {
+                self.items.len()
+            }
+
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.items.len() >= 1 {
+                    Some(self.items.remove(0))
+                } else {
+                    None
+                }
+            }
+        }
+    };
+}
+
+macro_rules! model_result {
+    ($model:ident, $id:ident) => {
+        #[derive(Debug)]
+        pub struct $id {
+            items: Vec<$model>,
+        }
+
+        impl From<Value> for $id {
+            fn from(list: Value) -> Self {
+                assert!(list.is_object());
+                let list = list.get("rows").unwrap();
+
+                assert!(list.is_array());
+                let mut output: Vec<$model> = Vec::new();
+
+                for json_node in list.as_array().unwrap().to_owned() {
+                    output.push($model::try_from(json_node).unwrap());
+                }
+
+                $id { items: output }
+            }
+        }
+
+        impl Iterator for $id {
+            type Item = $model;
 
             fn count(self) -> usize {
                 self.items.len()
